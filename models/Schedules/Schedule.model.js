@@ -1,39 +1,43 @@
 const { Model, DataTypes } = require("sequelize")
 
-const sequelize = require('../../database/dbconneciont')
+const sequelize = require('../database/dbconneciont')
 
-class Brand extends Model {}
+class Schedule extends Model {}
 
-Brand.init({
+Schedule.init({
   id: {
     type: DataTypes.INTEGER,
     primaryKey: true,
     autoIncrement: true,
     allowNull: false,
   },
-  code: {
-    type: DataTypes.STRING,
-    allowNull: false,
-  },
   name: {
-    type: DataTypes.STRING(5),
+    type: DataTypes.STRING,
     allowNull: false,
   },
   description: {
     type: DataTypes.TEXT,
+    allowNull: true,
+  },
+  status: {
+    type: DataTypes.STRING,
     allowNull: false,
   },
-  isactive: {
-    type: DataTypes.BOOLEAN,
-    allowNull: false,
-  },
-  user_creates_id: {
+  user_created_id: {
     type: DataTypes.INTEGER,
     allowNull: false,
+    references: {
+      model: "users",
+      key: "id",
+    },
   },
-  user_updates_id: {
+  user_updated_id: {
     type: DataTypes.INTEGER,
     allowNull: false,
+    references: {
+      model: "users",
+      key: "id",
+    },
   },
   created_at: {
     type: DataTypes.DATE,
@@ -45,17 +49,15 @@ Brand.init({
   },
 }, {
   sequelize,
-  modelName: 'Brand',
-  tableName: 'brands',
+  modelName: "Scheule",
+  tableName: "schedules",
   timestamps: true,
-
   indexes: [
     {
       unique: true,
-      fields: ['code']
+      fields: ['id']
     }
   ]
-},
-)
+});
 
-module.exports = Brand
+module.exports = Schedule

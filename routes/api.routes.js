@@ -1,7 +1,7 @@
 const router = require('express').Router()
 
-const brandRouter = require('./parameters/brands/brand.routes')
+const equipmentRouter = require('./equipments/equipment.routes')
 
-router.use('/brands', brandRouter)
+router.use('/equipments', equipmentRouter)
 
 module.exports = router
