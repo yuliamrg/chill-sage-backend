@@ -1,44 +1,44 @@
-const User = require('../../models/Users/User.model')
+const Client = require('../../models/Clients/Client.model')
 const { Op } = require('sequelize')
 
-const getUsers = async (req, res) => {
+const getClients = async (req, res) => {
   try {
-    const users = await User.findAll()
+    const clients = await Client.findAll()
     res.status(200).json({
       status: true,
       msg: 'Obeniendo equipos',
-      users: users,
+      clients: clients,
     })
   } catch (error) {
     res.status(500).json({
       status: false,
-      msg: 'Error al conectar con el controlador user:' + error.message,
-      users: [],
+      msg: 'Error al conectar con el controlador client:' + error.message,
+      clients: [],
     })
   }
 }
 
-const createUser = async (req, res) => {
+const createClient = async (req, res) => {
   try {
-    const userCreate = await User.create(req.body)
+    const clientCreate = await Client.create(req.body)
     res.status(201).json({
       status: true,
       msg: 'equipo creado con exito',
-      user: userCreate,
+      client: clientCreate,
     })
   } catch (error) {
     res.status(500).json({
       status: false,
       msg: 'Error al crear el equipo: ' + error.message,
-      user: [],
+      client: [],
     })
   }
 }
 
-const updateUser = async (req, res) => {
+const updateClient = async (req, res) => {
   const { id } = req.params
   try {
-    const userUpdate = await User.update(req.body, {
+    const clientUpdate = await Client.update(req.body, {
       where: {
         id: id,
       },
@@ -46,46 +46,46 @@ const updateUser = async (req, res) => {
     res.status(201).json({
       status: true,
       msg: 'equipo actualizado con exito',
-      user: userUpdate,
+      client: clientUpdate,
     })
   } catch (error) {
     res.status(500).json({
       status: false,
       msg: 'Error al actualizar el equipo: ' + error.message,
-      user: [],
+      client: [],
     })
   }
 }
 
-const destroyUser = async (req, res) => {
+const destroyClient = async (req, res) => {
   try {
     const { id } = req.params
-    const user = await User.findByPk(id)
-    if (!user) {
+    const client = await Client.findByPk(id)
+    if (!client) {
       return res.status(404).json({
         status: false,
         msg: 'equipo no encontrado',
-        user: [],
+        client: [],
       })
     }
-    await user.destroy()
+    await client.destroy()
     res.status(200).json({
       status: true,
       msg: 'equipo eliminado con exito',
-      user: user,
+      client: client,
     })
   } catch (error) {
     res.status(500).json({
       status: false,
       msg: 'Error al eliminar el equipo: ' + error.message,
-      user: [],
+      client: [],
     })
   }
 }
 
 module.exports = {
-  getUsers,
-  createUser,
-  updateUser,
-  destroyUser,
+  getClients,
+  createClient,
+  updateClient,
+  destroyClient,
 }

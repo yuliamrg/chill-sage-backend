@@ -40,14 +40,14 @@ Equipment.init(
     alias: {
       type: DataTypes.STRING,
     },
-    // client: {
-    //   type: DataTypes.STRING,
-    //   // allowNull: false,
-    //   references: {
-    //     model: 'clients',
-    //     key: 'id',
-    //   }
-    // },
+    client: {
+      type: DataTypes.STRING,
+      // allowNull: false,
+      references: {
+        model: 'clients',
+        key: 'id',
+      }
+    },
     description: {
       type: DataTypes.STRING,
     },
@@ -71,22 +71,22 @@ Equipment.init(
       type: DataTypes.DATE,
       allowNull: false,
     },
-    // user_created_id: {
-    //   type: DataTypes.INTEGER,
-    //   // allowNull: false,
-    //   references: {
-    //     model: 'users',
-    //     key: 'id',
-    //   },
-    // },
-    // user_updated_id: {
-    //   type: DataTypes.INTEGER,
-    //   // allowNull: false,
-    //   references: {
-    //     model: 'users',
-    //     key: 'id',
-    //   },
-    // },
+    user_created_id: {
+      type: DataTypes.INTEGER,
+      // allowNull: false,
+      references: {
+        model: 'users',
+        key: 'id',
+      },
+    },
+    user_updated_id: {
+      type: DataTypes.INTEGER,
+      // allowNull: false,
+      references: {
+        model: 'users',
+        key: 'id',
+      },
+    },
   },
   {
     sequelize,

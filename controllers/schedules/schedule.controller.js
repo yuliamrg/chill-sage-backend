@@ -1,44 +1,44 @@
-const User = require('../../models/Users/User.model')
+const Schedule = require('../../models/Schedules/Schedule.model')
 const { Op } = require('sequelize')
 
-const getUsers = async (req, res) => {
+const getSchedules = async (req, res) => {
   try {
-    const users = await User.findAll()
+    const schedules = await Schedule.findAll()
     res.status(200).json({
       status: true,
       msg: 'Obeniendo equipos',
-      users: users,
+      schedules: schedules,
     })
   } catch (error) {
     res.status(500).json({
       status: false,
-      msg: 'Error al conectar con el controlador user:' + error.message,
-      users: [],
+      msg: 'Error al conectar con el controlador schedule:' + error.message,
+      schedules: [],
     })
   }
 }
 
-const createUser = async (req, res) => {
+const createSchedule = async (req, res) => {
   try {
-    const userCreate = await User.create(req.body)
+    const scheduleCreate = await Schedule.create(req.body)
     res.status(201).json({
       status: true,
       msg: 'equipo creado con exito',
-      user: userCreate,
+      schedule: scheduleCreate,
     })
   } catch (error) {
     res.status(500).json({
       status: false,
       msg: 'Error al crear el equipo: ' + error.message,
-      user: [],
+      schedule: [],
     })
   }
 }
 
-const updateUser = async (req, res) => {
+const updateSchedule = async (req, res) => {
   const { id } = req.params
   try {
-    const userUpdate = await User.update(req.body, {
+    const scheduleUpdate = await Schedule.update(req.body, {
       where: {
         id: id,
       },
@@ -46,46 +46,46 @@ const updateUser = async (req, res) => {
     res.status(201).json({
       status: true,
       msg: 'equipo actualizado con exito',
-      user: userUpdate,
+      schedule: scheduleUpdate,
     })
   } catch (error) {
     res.status(500).json({
       status: false,
       msg: 'Error al actualizar el equipo: ' + error.message,
-      user: [],
+      schedule: [],
     })
   }
 }
 
-const destroyUser = async (req, res) => {
+const destroySchedule = async (req, res) => {
   try {
     const { id } = req.params
-    const user = await User.findByPk(id)
-    if (!user) {
+    const schedule = await Schedule.findByPk(id)
+    if (!schedule) {
       return res.status(404).json({
         status: false,
         msg: 'equipo no encontrado',
-        user: [],
+        schedule: [],
       })
     }
-    await user.destroy()
+    await schedule.destroy()
     res.status(200).json({
       status: true,
       msg: 'equipo eliminado con exito',
-      user: user,
+      schedule: schedule,
     })
   } catch (error) {
     res.status(500).json({
       status: false,
       msg: 'Error al eliminar el equipo: ' + error.message,
-      user: [],
+      schedule: [],
     })
   }
 }
 
 module.exports = {
-  getUsers,
-  createUser,
-  updateUser,
-  destroyUser,
+  getSchedules,
+  createSchedule,
+  updateSchedule,
+  destroySchedule,
 }

@@ -1,44 +1,44 @@
-const User = require('../../models/Users/User.model')
+const Role = require('../../models/Roles/Role.model')
 const { Op } = require('sequelize')
 
-const getUsers = async (req, res) => {
+const getRoles = async (req, res) => {
   try {
-    const users = await User.findAll()
+    const roles = await Role.findAll()
     res.status(200).json({
       status: true,
       msg: 'Obeniendo equipos',
-      users: users,
+      roles: roles,
     })
   } catch (error) {
     res.status(500).json({
       status: false,
-      msg: 'Error al conectar con el controlador user:' + error.message,
-      users: [],
+      msg: 'Error al conectar con el controlador role:' + error.message,
+      roles: [],
     })
   }
 }
 
-const createUser = async (req, res) => {
+const createRole = async (req, res) => {
   try {
-    const userCreate = await User.create(req.body)
+    const roleCreate = await Role.create(req.body)
     res.status(201).json({
       status: true,
       msg: 'equipo creado con exito',
-      user: userCreate,
+      role: roleCreate,
     })
   } catch (error) {
     res.status(500).json({
       status: false,
       msg: 'Error al crear el equipo: ' + error.message,
-      user: [],
+      role: [],
     })
   }
 }
 
-const updateUser = async (req, res) => {
+const updateRole = async (req, res) => {
   const { id } = req.params
   try {
-    const userUpdate = await User.update(req.body, {
+    const roleUpdate = await Role.update(req.body, {
       where: {
         id: id,
       },
@@ -46,46 +46,46 @@ const updateUser = async (req, res) => {
     res.status(201).json({
       status: true,
       msg: 'equipo actualizado con exito',
-      user: userUpdate,
+      role: roleUpdate,
     })
   } catch (error) {
     res.status(500).json({
       status: false,
       msg: 'Error al actualizar el equipo: ' + error.message,
-      user: [],
+      role: [],
     })
   }
 }
 
-const destroyUser = async (req, res) => {
+const destroyRole = async (req, res) => {
   try {
     const { id } = req.params
-    const user = await User.findByPk(id)
-    if (!user) {
+    const role = await Role.findByPk(id)
+    if (!role) {
       return res.status(404).json({
         status: false,
         msg: 'equipo no encontrado',
-        user: [],
+        role: [],
       })
     }
-    await user.destroy()
+    await role.destroy()
     res.status(200).json({
       status: true,
       msg: 'equipo eliminado con exito',
-      user: user,
+      role: role,
     })
   } catch (error) {
     res.status(500).json({
       status: false,
       msg: 'Error al eliminar el equipo: ' + error.message,
-      user: [],
+      role: [],
     })
   }
 }
 
 module.exports = {
-  getUsers,
-  createUser,
-  updateUser,
-  destroyUser,
+  getRoles,
+  createRole,
+  updateRole,
+  destroyRole,
 }

@@ -66,12 +66,12 @@ Client.init(
     modelName: 'Client',
     tableName: 'clients',
     timestamps: true,
-    indexes: [
-      {
-        unique: true,
-        fields: ['name'],
-      },
-    ],
+    // indexes: [
+    //   {
+    //     unique: true,
+    //     fields: ['name'],
+    //   },
+    // ],
   }
 )
 
