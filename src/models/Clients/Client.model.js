@@ -1,10 +1,10 @@
 const { Model, DataTypes } = require('sequelize')
 
-const sequelize = require('../database/dbconneciont')
+const sequelize = require('../database/dbconnection')
 
-class Equipment extends Model {}
+class Client extends Model {}
 
-Equipment.init(
+Client.init(
   {
     id: {
       type: DataTypes.INTEGER,
@@ -16,36 +16,15 @@ Equipment.init(
       type: DataTypes.STRING,
       allowNull: false,
     },
-    type: {
+    address: {
       type: DataTypes.STRING,
     },
-    location: {
-      type: DataTypes.STRING,
-      allowNull: false,
-    },
-    brand: {
+    phone: {
       type: DataTypes.STRING,
     },
-    model: {
-      type: DataTypes.STRING,
-    },
-    serial: {
+    email: {
       type: DataTypes.STRING,
       allowNull: false,
-    },
-    code: {
-      type: DataTypes.STRING,
-      allowNull: false,
-    },
-    alias: {
-      type: DataTypes.STRING,
-    },
-    client: {
-      type: DataTypes.INTEGER,
-      references: {
-        model: 'clients',
-        key: 'id',
-      }
     },
     description: {
       type: DataTypes.STRING,
@@ -54,21 +33,14 @@ Equipment.init(
       type: DataTypes.STRING,
       allowNull: false,
     },
-    use_start_at: {
-      type: DataTypes.DATE,
-    },
-    use_end_at: {
-      type: DataTypes.DATE,
-    },
-    createdAt: {
+    created_at: {
       field: 'created_at',
       type: DataTypes.DATE,
       allowNull: false,
     },
-    updatedAt: {
+    updated_at: {
       field: 'updated_at',
       type: DataTypes.DATE,
-      allowNull: false,
     },
     user_created_id: {
       type: DataTypes.INTEGER,
@@ -87,16 +59,16 @@ Equipment.init(
   },
   {
     sequelize,
-    modelName: 'Equipment',
-    tableName: 'equipments',
+    modelName: 'Client',
+    tableName: 'clients',
     timestamps: true,
     indexes: [
       {
         unique: true,
-        fields: ['code', 'serial'],
+        fields: ['name'],
       },
     ],
   }
 )
 
-module.exports = Equipment
+module.exports = Client

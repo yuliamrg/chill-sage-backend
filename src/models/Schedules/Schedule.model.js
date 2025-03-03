@@ -1,6 +1,6 @@
 const { Model, DataTypes } = require("sequelize")
 
-const sequelize = require('../database/dbconneciont')
+const sequelize = require('../database/dbconnection')
 
 class Schedule extends Model {}
 
@@ -17,7 +17,6 @@ Schedule.init({
   },
   description: {
     type: DataTypes.STRING,
-    allowNull: true,
   },
   status: {
     type: DataTypes.STRING,
@@ -31,11 +30,9 @@ Schedule.init({
   updated_at: {
     field: "updated_at",
     type: DataTypes.DATE,
-    allowNull: false,
   },
   user_created_id: {
     type: DataTypes.INTEGER,
-    allowNull: false,
     references: {
       model: "users",
       key: "id",
@@ -43,7 +40,6 @@ Schedule.init({
   },
   user_updated_id: {
     type: DataTypes.INTEGER,
-    allowNull: false,
     references: {
       model: "users",
       key: "id",

@@ -1,10 +1,10 @@
 const { Model, DataTypes } = require('sequelize')
 
-const sequelize = require('../database/dbconneciont')
+const sequelize = require('../database/dbconnection')
 
-class Client extends Model {}
+class Equipment extends Model {}
 
-Client.init(
+Equipment.init(
   {
     id: {
       type: DataTypes.INTEGER,
@@ -16,32 +16,55 @@ Client.init(
       type: DataTypes.STRING,
       allowNull: false,
     },
-    address: {
+    type: {
+      type: DataTypes.STRING,
+    },
+    location: {
+      type: DataTypes.STRING,
+    },
+    brand: {
+      type: DataTypes.STRING,
+    },
+    model: {
+      type: DataTypes.STRING,
+    },
+    serial: {
       type: DataTypes.STRING,
       allowNull: false,
     },
-    phone: {
+    code: {
       type: DataTypes.STRING,
       allowNull: false,
     },
-    email: {
+    alias: {
       type: DataTypes.STRING,
-      allowNull: false,
+    },
+    client: {
+      type: DataTypes.INTEGER,
+      references: {
+        model: 'clients',
+        key: 'id',
+      }
     },
     description: {
       type: DataTypes.STRING,
-      allowNull: false,
     },
     status: {
       type: DataTypes.STRING,
       allowNull: false,
     },
-    created_at: {
+    use_start_at: {
+      type: DataTypes.DATE,
+    },
+    use_end_at: {
+      type: DataTypes.DATE,
+    },
+    createdAt: {
       field: 'created_at',
       type: DataTypes.DATE,
       allowNull: false,
     },
-    updated_at: {
+    updatedAt: {
       field: 'updated_at',
       type: DataTypes.DATE,
     },
@@ -62,16 +85,16 @@ Client.init(
   },
   {
     sequelize,
-    modelName: 'Client',
-    tableName: 'clients',
+    modelName: 'Equipment',
+    tableName: 'equipments',
     timestamps: true,
     indexes: [
       {
         unique: true,
-        fields: ['name'],
+        fields: ['code', 'serial'],
       },
     ],
   }
 )
 
-module.exports = Client
+module.exports = Equipment

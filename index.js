@@ -1,8 +1,8 @@
 require('dotenv').config()
 
 const cors = require('cors') //cors para permitir peticiones desde otros dominios
-const db = require('./models/database/dbconneciont') //conectar a la base de datos
-const routes = require('./routes/api.routes')
+const db = require('./src/models/database/dbconnection') //conectar a la base de datos
+const routes = require('./src/routes/api.routes')
 const express = require('express')
 const app = express() //crear una app de express
 

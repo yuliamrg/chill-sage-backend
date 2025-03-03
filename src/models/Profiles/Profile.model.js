@@ -1,6 +1,6 @@
 const { Model, DataTypes } = require('sequelize')
 
-const sequelize = require('../database/dbconneciont')
+const sequelize = require('../database/dbconnection')
 
 class Role extends Model {}
 
@@ -24,11 +24,9 @@ Role.init(
     updated_at: {
       field: 'updated_at',
       type: DataTypes.DATE,
-      allowNull: false,
     },
     user_created_id: {
       type: DataTypes.INTEGER,
-      allowNull: false,
       references: {
         model: 'users',
         key: 'id',
@@ -36,7 +34,6 @@ Role.init(
     },
     user_updated_id: {
       type: DataTypes.INTEGER,
-      allowNull: false,
       references: {
         model: 'users',
         key: 'id',

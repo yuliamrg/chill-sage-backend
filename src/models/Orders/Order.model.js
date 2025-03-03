@@ -1,6 +1,6 @@
 const { Model, DataTypes } = require("sequelize")
 
-const sequelize = require('../database/dbconneciont')
+const sequelize = require('../database/dbconnection')
 
 class Order extends Model {}
 
@@ -13,7 +13,6 @@ Order.init({
   },
   user_asigned_id: {
     type: DataTypes.INTEGER,
-    allowNull: false,
     references: {
       model: "users",
       key: "id",
@@ -21,7 +20,6 @@ Order.init({
   },
   resquest_id: {
     type: DataTypes.INTEGER,
-    allowNull: false,
     references: {
       model: "requests",
       key: "id",
@@ -33,19 +31,15 @@ Order.init({
   },
   start_date: {
     type: DataTypes.DATE,
-    allowNull: false,
   },
   end_date: {
     type: DataTypes.DATE,
-    allowNull: false,
   },
   description: {
     type: DataTypes.STRING,
-    allowNull: false,
   },
   hours: {
     type: DataTypes.INTEGER,
-    allowNull: false,
   },
   created_at: {
     field: "created_at",
@@ -55,11 +49,9 @@ Order.init({
   updated_at: {
     field: "updated_at",
     type: DataTypes.DATE,
-    allowNull: false,
   },
   user_created_id: {
     type: DataTypes.INTEGER,
-    allowNull: false,
     references: {
       model: "users",
       key: "id",
@@ -67,7 +59,6 @@ Order.init({
   },
   user_updated_id: {
     type: DataTypes.INTEGER,
-    allowNull: false,
     references: {
       model: "users",
       key: "id",

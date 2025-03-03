@@ -1,10 +1,10 @@
 const { Model, DataTypes } = require('sequelize')
 
-const sequelize = require('../database/dbconneciont')
+const sequelize = require('../database/dbconnection')
 
-class Role extends Model {}
+class User extends Model {}
 
-Role.init(
+User.init(
   {
     id: {
       type: DataTypes.INTEGER,
@@ -12,13 +12,39 @@ Role.init(
       autoIncrement: true,
       allowNull: false,
     },
+    username: {
+      type: DataTypes.STRING,
+      allowNull: false,
+      unique: true,
+    },
     name: {
+      type: DataTypes.STRING,
+    },
+    last_name: {
+      type: DataTypes.STRING,
+    },
+    email: {
       type: DataTypes.STRING,
       allowNull: false,
     },
-    description: {
+    password: {
       type: DataTypes.STRING,
       allowNull: false,
+    },
+    client: {
+      type: DataTypes.INTEGER,
+      references: {
+        model: 'clients',
+        key: 'id',
+      },
+    },
+    role: {
+      type: DataTypes.INTEGER,
+      allowNull: false,
+      references: {
+        model: 'roles',
+        key: 'id',
+      },
     },
     status: {
       type: DataTypes.STRING,
@@ -32,11 +58,9 @@ Role.init(
     updated_at: {
       field: 'updated_at',
       type: DataTypes.DATE,
-      allowNull: false,
     },
     user_created_id: {
       type: DataTypes.INTEGER,
-      allowNull: false,
       references: {
         model: 'users',
         key: 'id',
@@ -44,7 +68,6 @@ Role.init(
     },
     user_updated_id: {
       type: DataTypes.INTEGER,
-      allowNull: false,
       references: {
         model: 'users',
         key: 'id',
@@ -53,16 +76,16 @@ Role.init(
   },
   {
     sequelize,
-    modelName: 'Role',
-    tableName: 'roles',
+    modelName: 'User',
+    tableName: 'users',
     timestamps: true,
     indexes: [
       {
         unique: true,
-        fields: ['name'],
+        fields: ['username', 'email'],
       },
     ],
   }
 )
 
-module.exports = Role
+module.exports = User
