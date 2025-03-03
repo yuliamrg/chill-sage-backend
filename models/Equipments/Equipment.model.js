@@ -41,8 +41,7 @@ Equipment.init(
       type: DataTypes.STRING,
     },
     client: {
-      type: DataTypes.STRING,
-      // allowNull: false,
+      type: DataTypes.INTEGER,
       references: {
         model: 'clients',
         key: 'id',
@@ -62,18 +61,17 @@ Equipment.init(
       type: DataTypes.DATE,
     },
     createdAt: {
-      name: 'created_at',
+      field: 'created_at',
       type: DataTypes.DATE,
       allowNull: false,
     },
     updatedAt: {
-      name: 'updated_at',
+      field: 'updated_at',
       type: DataTypes.DATE,
       allowNull: false,
     },
     user_created_id: {
       type: DataTypes.INTEGER,
-      // allowNull: false,
       references: {
         model: 'users',
         key: 'id',
@@ -81,7 +79,6 @@ Equipment.init(
     },
     user_updated_id: {
       type: DataTypes.INTEGER,
-      // allowNull: false,
       references: {
         model: 'users',
         key: 'id',
@@ -93,12 +90,12 @@ Equipment.init(
     modelName: 'Equipment',
     tableName: 'equipments',
     timestamps: true,
-    // indexes: [
-    //   {
-    //     unique: true,
-    //     fields: ['code', 'serial'],
-    //   },
-    // ],
+    indexes: [
+      {
+        unique: true,
+        fields: ['code', 'serial'],
+      },
+    ],
   }
 )
 

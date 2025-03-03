@@ -16,11 +16,21 @@ Schedule.init({
     allowNull: false,
   },
   description: {
-    type: DataTypes.TEXT,
+    type: DataTypes.STRING,
     allowNull: true,
   },
   status: {
     type: DataTypes.STRING,
+    allowNull: false,
+  },
+  created_at: {
+    field: "created_at",
+    type: DataTypes.DATE,
+    allowNull: false,
+  },
+  updated_at: {
+    field: "updated_at",
+    type: DataTypes.DATE,
     allowNull: false,
   },
   user_created_id: {
@@ -39,25 +49,11 @@ Schedule.init({
       key: "id",
     },
   },
-  created_at: {
-    type: DataTypes.DATE,
-    allowNull: false,
-  },
-  updated_at: {
-    type: DataTypes.DATE,
-    allowNull: false,
-  },
 }, {
   sequelize,
   modelName: "Scheule",
   tableName: "schedules",
   timestamps: true,
-  indexes: [
-    {
-      unique: true,
-      fields: ['id']
-    }
-  ]
 });
 
 module.exports = Schedule

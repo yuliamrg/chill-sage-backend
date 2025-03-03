@@ -20,10 +20,12 @@ Request.init({
     allowNull: false,
   },
   created_at: {
+    field: 'created_at',
     type: DataTypes.DATE,
     allowNull: false,
   },
   updated_at: {
+    field: 'updated_at',
     type: DataTypes.DATE,
     allowNull: false,
   },
@@ -48,12 +50,6 @@ Request.init({
   modelName: "Request",
   tableName: "requests",
   timestamps: true,
-  indexes: [
-    {
-      unique: true,
-      fields: ['id']
-    }
-  ]
 });
 
 module.exports = Request

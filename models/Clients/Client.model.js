@@ -37,16 +37,16 @@ Client.init(
       allowNull: false,
     },
     created_at: {
+      field: 'created_at',
       type: DataTypes.DATE,
       allowNull: false,
     },
     updated_at: {
+      field: 'updated_at',
       type: DataTypes.DATE,
-      allowNull: false,
     },
     user_created_id: {
       type: DataTypes.INTEGER,
-      allowNull: false,
       references: {
         model: 'users',
         key: 'id',
@@ -54,7 +54,6 @@ Client.init(
     },
     user_updated_id: {
       type: DataTypes.INTEGER,
-      allowNull: false,
       references: {
         model: 'users',
         key: 'id',
@@ -66,12 +65,12 @@ Client.init(
     modelName: 'Client',
     tableName: 'clients',
     timestamps: true,
-    // indexes: [
-    //   {
-    //     unique: true,
-    //     fields: ['name'],
-    //   },
-    // ],
+    indexes: [
+      {
+        unique: true,
+        fields: ['name'],
+      },
+    ],
   }
 )
 

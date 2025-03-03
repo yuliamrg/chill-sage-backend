@@ -23,7 +23,7 @@ Order.init({
     type: DataTypes.INTEGER,
     allowNull: false,
     references: {
-      model: "request",
+      model: "requests",
       key: "id",
     },
   },
@@ -48,10 +48,12 @@ Order.init({
     allowNull: false,
   },
   created_at: {
+    field: "created_at",
     type: DataTypes.DATE,
     allowNull: false,
   },
   updated_at: {
+    field: "updated_at",
     type: DataTypes.DATE,
     allowNull: false,
   },
@@ -76,12 +78,6 @@ Order.init({
   modelName: "Order",
   tableName: "orders",
   timestamps: true,
-  indexes: [
-    {
-      unique: true,
-      fields: ['id']
-    }
-  ]
 });
 
 module.exports = Order

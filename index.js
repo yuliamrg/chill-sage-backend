@@ -7,21 +7,20 @@ const express = require('express')
 const app = express() //crear una app de express
 
 // middlewares
+app.use(cors()) //cors
 app.use(express.json())
 app.use('/api', routes)
-app.use(cors()) //cors
-
-//conectarse a la base de datos
-db.sync({ force: false })
-  .then(() => {
-    console.log('Database connected!')
-  })
-  .catch((error) => {
-    console.log('Database connection error:', error)
-  })
 
 // Servidor
 const port = process.env.PORT || 3000
 app.listen(port, () => {
+  //conectarse a la base de datos
+  db.sync({ force: false })
+    .then(() => {
+      console.log('Database connected!')
+    })
+    .catch((error) => {
+      console.log('Database connection error:', error)
+    })
   console.log(`Server running on port ${port}`)
 })

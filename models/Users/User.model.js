@@ -35,7 +35,7 @@ User.init(
       allowNull: false,
     },
     client: {
-      type: DataTypes.STRING,
+      type: DataTypes.INTEGER,
       allowNull: false,
       references: {
         model: 'clients',
@@ -43,7 +43,7 @@ User.init(
       },
     },
     role: {
-      type: DataTypes.STRING,
+      type: DataTypes.INTEGER,
       allowNull: false,
       references: {
         model: 'roles',
@@ -55,10 +55,12 @@ User.init(
       allowNull: false,
     },
     created_at: {
+      field: 'created_at',
       type: DataTypes.DATE,
       allowNull: false,
     },
     updated_at: {
+      field: 'updated_at',
       type: DataTypes.DATE,
       allowNull: false,
     },

@@ -1,6 +1,5 @@
 const Equipment = require('../../models/Equipments/Equipment.model')
 const { Op } = require('sequelize')
-
 const getEquipments = async (req, res) => {
   try {
     const equipments = await Equipment.findAll()
