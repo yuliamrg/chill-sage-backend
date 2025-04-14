@@ -11,6 +11,18 @@ app.use(cors()) //cors
 app.use(express.json())
 app.use('/api', routes)
 
+// Custom error handler for JSON parsing errors
+app.use((err, req, res, next) => {
+  if (err instanceof SyntaxError && err.status === 400 && 'body' in err) {
+    return res.status(400).json({ 
+      error: 'Invalid JSON format', 
+      details: err.message,
+      position: err.message.match(/position (\d+)/)?.[1] || 'unknown'
+    });
+  }
+  next(err);
+});
+
 // Servidor
 const port = process.env.PORT || 3000
 app.listen(port, () => {
