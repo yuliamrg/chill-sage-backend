@@ -92,12 +92,21 @@ const updateUser = async (req, res) => {
   try {
     const { id } = req.params
     
+    if (req.body.email) {
+      const emailExists = await User.findOne({
+        where: { email: req.body.email, id: { [Op.ne]: id } },
+      })
+      if (emailExists) {
+        return res.status(400).json({ message: 'El email ya está en uso' })
+      }
+    }
+
     // Only hash password if it's provided in the request
     if (req.body.password) {
       const hashedPassword = await bcrypt.hash(req.body.password, 10)
       req.body.password = hashedPassword
     }
-    
+
     const userUpdate = await User.update(req.body, {
       where: {
         id: id,
