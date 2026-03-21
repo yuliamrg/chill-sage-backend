@@ -43,7 +43,7 @@ El proyecto usa estas variables:
 - `DB_USER`: usuario de base de datos.
 - `DB_PASSWORD`: contrasena de base de datos.
 - `DB_HOSTNAME`: host de MySQL. Si no existe, usa `127.0.0.1`.
-- `DB_PORT`: puerto de MySQL. Si no existe, usa `3306`.
+- `DB_PORT`: puerto de MySQL. Si no existe, usa `3306`. Si levantas MySQL con [`db.yml`](/home/yuliamr/projects/chillsage/chill-sage-backend/db.yml), usa `3307`.
 - `DB_SYNC`: si vale `true`, ejecuta `db.sync({ force: false })` al iniciar. Por defecto no sincroniza el esquema automaticamente.
 
 Referencia rapida en [`.env.example`](/C:/Users/yulia/Documents/projects/chillsage/chillsage-backend/.env.example).
