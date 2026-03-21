@@ -1,0 +1,72 @@
+const { failure } = require('./apiResponse')
+
+const getValidationDetails = (error) => {
+  if (!Array.isArray(error?.errors)) {
+    return []
+  }
+
+  return error.errors
+    .map((item) => item?.message)
+    .filter(Boolean)
+}
+
+const normalizeError = (error, fallbackMessage) => {
+  const details = getValidationDetails(error)
+
+  switch (error?.name) {
+    case 'SequelizeUniqueConstraintError':
+      return {
+        statusCode: 409,
+        msg: details[0] ?? 'El registro ya existe o viola una restriccion unica.',
+        details,
+      }
+    case 'SequelizeValidationError':
+      return {
+        statusCode: 400,
+        msg: details[0] ?? 'Los datos enviados no son validos.',
+        details,
+      }
+    case 'SequelizeForeignKeyConstraintError':
+      return {
+        statusCode: 400,
+        msg: 'La relacion enviada no es valida o no existe.',
+        details,
+      }
+    default:
+      return {
+        statusCode: 500,
+        msg: `${fallbackMessage}${error?.message ? error.message : 'Error no identificado'}`,
+        details,
+      }
+  }
+}
+
+const logRequestError = (context, req, error) => {
+  console.error(`[${context}]`, {
+    method: req?.method,
+    path: req?.originalUrl,
+    params: req?.params,
+    query: req?.query,
+    body: req?.body,
+    errorName: error?.name,
+    errorMessage: error?.message,
+    validationErrors: getValidationDetails(error),
+    stack: error?.stack,
+  })
+}
+
+const handleRequestError = ({ context, req, res, error, fallbackMessage, payloadKey }) => {
+  logRequestError(context, req, error)
+
+  const normalized = normalizeError(error, fallbackMessage)
+
+  return failure(res, normalized.statusCode, normalized.msg, {
+    [payloadKey]: null,
+    ...(normalized.details.length ? { details: normalized.details } : {}),
+  })
+}
+
+module.exports = {
+  handleRequestError,
+  logRequestError,
+}

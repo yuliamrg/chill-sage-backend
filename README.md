@@ -91,6 +91,56 @@ Recursos disponibles:
 - `/orders`
 - `/equipments`
 
+## Sincronizacion Con Frontend
+
+Este backend no debe evolucionar como proyecto aislado. El frontend consumidor vive en:
+
+- `../chillsage-frontend`
+
+Regla de desarrollo:
+
+- El backend es la fuente de verdad del contrato HTTP.
+- Cada vez que cambie un payload de entrada o salida en backend, el cambio debe reflejarse en frontend en el mismo trabajo.
+- Ningun cambio de campos queda completo si solo compila backend.
+
+Puntos de sincronizacion en frontend:
+
+- `src/app/core/models/domain.models.ts`: define el shape que usa la UI.
+- `src/app/core/mappers/domain.mappers.ts`: traduce entre API y view model.
+- `src/app/core/services/*.service.ts`: consume las llaves reales del backend.
+- Componentes de formulario y listado: muestran o envian los campos.
+
+Flujo obligatorio cuando cambias un recurso:
+
+1. Cambia modelo, controlador y respuesta del backend.
+2. Actualiza [FRONTEND_API_SERVICES.md](/C:/Users/yulia/Documents/projects/chillsage/chillsage-backend/FRONTEND_API_SERVICES.md) con el contrato nuevo.
+3. Refleja el cambio en `../chillsage-frontend`:
+   - `domain.models.ts` si cambia el shape usado por la UI.
+   - `domain.mappers.ts` si cambia el nombre de campos o aparecen/desaparecen campos.
+   - el servicio del recurso si cambia la llave de respuesta o el endpoint.
+   - formularios/listados si el campo se captura o se muestra.
+4. Verifica backend con `node --check` o con arranque local.
+5. Verifica frontend con `npm run build`.
+
+Checklist minima por cambio de contrato:
+
+- Si agregas un campo de salida: agregarlo al controlador y mapearlo en frontend.
+- Si renombras un campo: actualizar mapper de entrada/salida y UI que lo consume.
+- Si eliminas un campo: quitarlo de docs, mapper, modelos y componentes.
+- Si agregas un campo obligatorio de entrada: actualizar formulario, validator y `map<Form>ToApi`.
+- Si cambia la respuesta enriquecida: revisar `users`, `orders` y `equipments` y cualquier tabla que renderice nombres derivados.
+
+Ejemplo con `requests`:
+
+- Si backend agrega `priority` en `request.controller.js` y modelo Sequelize:
+  - documentar `priority` en [FRONTEND_API_SERVICES.md](/C:/Users/yulia/Documents/projects/chillsage/chillsage-backend/FRONTEND_API_SERVICES.md),
+  - agregar `priority` a `RequestVm` y `RequestFormValue` en `../chillsage-frontend/src/app/core/models/domain.models.ts`,
+  - mapear `priority` en `mapRequest` y `mapRequestFormToApi` en `../chillsage-frontend/src/app/core/mappers/domain.mappers.ts`,
+  - actualizar `requests.service.ts` si cambia el endpoint o la llave,
+  - agregar el control al formulario y a la tabla si debe verse en UI.
+
+Si no haces esos pasos, backend y frontend quedan "compilando" pero desincronizados funcionalmente.
+
 ### Endpoints
 
 Todos estos recursos exponen CRUD basico:

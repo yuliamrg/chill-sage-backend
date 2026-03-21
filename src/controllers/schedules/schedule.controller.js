@@ -1,16 +1,14 @@
 const Schedule = require('../../models/Schedules/Schedule.model')
+const { success, failure } = require('../../utils/apiResponse')
+const { handleRequestError } = require('../../utils/requestError')
 const getSchedules = async (req, res) => {
   try {
     const schedules = await Schedule.findAll()
-    res.status(200).json({
-      status: true,
-      msg: 'Obteniendo horarios',
+    return success(res, 200, 'Obteniendo horarios', {
       schedules: schedules,
     })
   } catch (error) {
-    res.status(500).json({
-      status: false,
-      msg: 'Error al conectar con el controlador schedule:' + error.message,
+    return failure(res, 500, 'Error al conectar con el controlador schedule:' + error.message, {
       schedules: [],
     })
   }
@@ -19,16 +17,17 @@ const getSchedules = async (req, res) => {
 const createSchedule = async (req, res) => {
   try {
     const scheduleCreate = await Schedule.create(req.body)
-    res.status(201).json({
-      status: true,
-      msg: 'Horario creado con exito',
+    return success(res, 201, 'Horario creado con exito', {
       schedule: scheduleCreate,
     })
   } catch (error) {
-    res.status(500).json({
-      status: false,
-      msg: 'Error al crear el horario: ' + error.message,
-      schedule: [],
+    return handleRequestError({
+      context: 'schedules.create',
+      req,
+      res,
+      error,
+      fallbackMessage: 'Error al crear el horario: ',
+      payloadKey: 'schedule',
     })
   }
 }
@@ -39,23 +38,15 @@ const getScheduleById = async (req, res) => {
     const schedule = await Schedule.findByPk(id)
 
     if (!schedule) {
-      return res.status(404).json({
-        status: false,
-        msg: 'Horario no encontrado',
-        schedule: [],
-      })
+      return failure(res, 404, 'Horario no encontrado', { schedule: null })
     }
 
-    res.status(200).json({
-      status: true,
-      msg: 'Horario encontrado',
+    return success(res, 200, 'Horario encontrado', {
       schedule,
     })
   } catch (error) {
-    res.status(500).json({
-      status: false,
-      msg: 'Error al obtener el horario: ' + error.message,
-      schedule: [],
+    return failure(res, 500, 'Error al obtener el horario: ' + error.message, {
+      schedule: null,
     })
   }
 }
@@ -70,25 +61,22 @@ const updateSchedule = async (req, res) => {
     })
 
     if (scheduleUpdate[0] === 0) {
-      return res.status(404).json({
-        status: false,
-        msg: 'Horario no encontrado o no se realizaron cambios',
-        schedule: [],
-      })
+      return failure(res, 404, 'Horario no encontrado o no se realizaron cambios', { schedule: null })
     }
 
     const updatedSchedule = await Schedule.findByPk(id)
 
-    res.status(200).json({
-      status: true,
-      msg: 'Horario actualizado con exito',
+    return success(res, 200, 'Horario actualizado con exito', {
       schedule: updatedSchedule,
     })
   } catch (error) {
-    res.status(500).json({
-      status: false,
-      msg: 'Error al actualizar el horario: ' + error.message,
-      schedule: [],
+    return handleRequestError({
+      context: 'schedules.update',
+      req,
+      res,
+      error,
+      fallbackMessage: 'Error al actualizar el horario: ',
+      payloadKey: 'schedule',
     })
   }
 }
@@ -98,23 +86,15 @@ const destroySchedule = async (req, res) => {
     const { id } = req.params
     const schedule = await Schedule.findByPk(id)
     if (!schedule) {
-      return res.status(404).json({
-        status: false,
-        msg: 'Horario no encontrado',
-        schedule: [],
-      })
+      return failure(res, 404, 'Horario no encontrado', { schedule: null })
     }
     await schedule.destroy()
-    res.status(200).json({
-      status: true,
-      msg: 'Horario eliminado con exito',
-      schedule: schedule,
+    return success(res, 200, 'Horario eliminado con exito', {
+      schedule,
     })
   } catch (error) {
-    res.status(500).json({
-      status: false,
-      msg: 'Error al eliminar el horario: ' + error.message,
-      schedule: [],
+    return failure(res, 500, 'Error al eliminar el horario: ' + error.message, {
+      schedule: null,
     })
   }
 }

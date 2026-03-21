@@ -3,6 +3,8 @@ const Client = require('../../models/Clients/Client.model')
 const Role = require('../../models/Roles/Role.model')
 const { Op } = require('sequelize')
 const bcrypt = require('bcrypt')
+const { success, failure } = require('../../utils/apiResponse')
+const { handleRequestError, logRequestError } = require('../../utils/requestError')
 
 const sanitizeUser = (user) => {
   if (!user) {
@@ -43,21 +45,21 @@ const login = async (req, res) => {
     })
 
     if (!user) {
-      return res.status(401).json({ message: 'Usuario no encontrado' })
+      return failure(res, 401, 'Usuario no encontrado', { user: null })
     }
 
     const isPasswordValid = await bcrypt.compare(password, user.password)
     if (!isPasswordValid) {
-      return res.status(401).json({ message: 'Contrasena incorrecta' })
+      return failure(res, 401, 'Contrasena incorrecta', { user: null })
     }
 
-    res.status(200).json({
-      message: 'Inicio de sesion exitoso',
-      user: sanitizeUser(user),
+    return success(res, 200, 'Inicio de sesion exitoso', {
+      user: await enrichUser(user),
     })
   } catch (error) {
-    res.status(500).json({
-      message: 'Error al iniciar sesion: ' + error.message,
+    logRequestError('users.login', req, error)
+    return failure(res, 500, 'Error al iniciar sesion: ' + error.message, {
+      user: null,
     })
   }
 }
@@ -66,15 +68,11 @@ const getUsers = async (req, res) => {
   try {
     const users = await User.findAll()
     const hydratedUsers = await Promise.all(users.map(enrichUser))
-    res.status(200).json({
-      status: true,
-      msg: 'Obteniendo usuarios',
+    return success(res, 200, 'Obteniendo usuarios', {
       users: hydratedUsers,
     })
   } catch (error) {
-    res.status(500).json({
-      status: false,
-      msg: 'Error al conectar con el controlador users:' + error.message,
+    return failure(res, 500, 'Error al conectar con el controlador users:' + error.message, {
       users: [],
     })
   }
@@ -86,23 +84,15 @@ const getUserById = async (req, res) => {
     const user = await User.findByPk(id)
 
     if (!user) {
-      return res.status(404).json({
-        status: false,
-        msg: 'Usuario no encontrado',
-        user: [],
-      })
+      return failure(res, 404, 'Usuario no encontrado', { user: null })
     }
 
-    res.status(200).json({
-      status: true,
-      msg: 'Usuario encontrado',
+    return success(res, 200, 'Usuario encontrado', {
       user: await enrichUser(user),
     })
   } catch (error) {
-    res.status(500).json({
-      status: false,
-      msg: 'Error al obtener el usuario: ' + error.message,
-      user: [],
+    return failure(res, 500, 'Error al obtener el usuario: ' + error.message, {
+      user: null,
     })
   }
 }
@@ -122,16 +112,17 @@ const createUser = async (req, res) => {
     }
 
     const userCreate = await User.create(req.body)
-    res.status(201).json({
-      status: true,
-      msg: 'Usuario creado con exito',
-      user: sanitizeUser(userCreate),
+    return success(res, 201, 'Usuario creado con exito', {
+      user: await enrichUser(userCreate),
     })
   } catch (error) {
-    res.status(500).json({
-      status: false,
-      msg: 'Error al crear el usuario: ' + error.message,
-      user: [],
+    return handleRequestError({
+      context: 'users.create',
+      req,
+      res,
+      error,
+      fallbackMessage: 'Error al crear el usuario: ',
+      payloadKey: 'user',
     })
   }
 }
@@ -146,7 +137,7 @@ const updateUser = async (req, res) => {
       })
 
       if (emailExists) {
-        return res.status(400).json({ message: 'El email ya esta en uso' })
+        return failure(res, 400, 'El email ya esta en uso', { user: null })
       }
     }
 
@@ -162,25 +153,22 @@ const updateUser = async (req, res) => {
     })
 
     if (userUpdate[0] === 0) {
-      return res.status(404).json({
-        status: false,
-        msg: 'Usuario no encontrado o no se realizaron cambios',
-        user: [],
-      })
+      return failure(res, 404, 'Usuario no encontrado o no se realizaron cambios', { user: null })
     }
 
     const updatedUser = await User.findByPk(id)
 
-    res.status(200).json({
-      status: true,
-      msg: 'Usuario actualizado con exito',
-      user: sanitizeUser(updatedUser),
+    return success(res, 200, 'Usuario actualizado con exito', {
+      user: await enrichUser(updatedUser),
     })
   } catch (error) {
-    res.status(500).json({
-      status: false,
-      msg: 'Error al actualizar el usuario: ' + error.message,
-      user: [],
+    return handleRequestError({
+      context: 'users.update',
+      req,
+      res,
+      error,
+      fallbackMessage: 'Error al actualizar el usuario: ',
+      payloadKey: 'user',
     })
   }
 }
@@ -191,25 +179,17 @@ const destroyUser = async (req, res) => {
     const user = await User.findByPk(id)
 
     if (!user) {
-      return res.status(404).json({
-        status: false,
-        msg: 'Usuario no encontrado',
-        user: [],
-      })
+      return failure(res, 404, 'Usuario no encontrado', { user: null })
     }
 
     await user.destroy()
 
-    res.status(200).json({
-      status: true,
-      msg: 'Usuario eliminado con exito',
-      user: sanitizeUser(user),
+    return success(res, 200, 'Usuario eliminado con exito', {
+      user: await enrichUser(user),
     })
   } catch (error) {
-    res.status(500).json({
-      status: false,
-      msg: 'Error al eliminar el usuario: ' + error.message,
-      user: [],
+    return failure(res, 500, 'Error al eliminar el usuario: ' + error.message, {
+      user: null,
     })
   }
 }

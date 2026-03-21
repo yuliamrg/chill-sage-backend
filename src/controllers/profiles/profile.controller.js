@@ -1,17 +1,31 @@
 const Profile = require('../../models/Profiles/Profile.model')
+const { success, failure } = require('../../utils/apiResponse')
 const getProfiles = async (req, res) => {
   try {
     const profiles = await Profile.findAll()
-    res.status(200).json({
-      status: true,
-      msg: 'Obteniendo perfiles',
+    return success(res, 200, 'Obteniendo perfiles', {
       profiles: profiles,
     })
   } catch (error) {
-    res.status(500).json({
-      status: false,
-      msg: 'Error al conectar con el controlador profile:' + error.message,
+    return failure(res, 500, 'Error al conectar con el controlador profile:' + error.message, {
       profiles: [],
+    })
+  }
+}
+
+const getProfileById = async (req, res) => {
+  try {
+    const { id } = req.params
+    const profile = await Profile.findByPk(id)
+
+    if (!profile) {
+      return failure(res, 404, 'Perfil no encontrado', { profile: null })
+    }
+
+    return success(res, 200, 'Perfil encontrado', { profile })
+  } catch (error) {
+    return failure(res, 500, 'Error al obtener el perfil: ' + error.message, {
+      profile: null,
     })
   }
 }
@@ -19,16 +33,12 @@ const getProfiles = async (req, res) => {
 const createProfile = async (req, res) => {
   try {
     const profileCreate = await Profile.create(req.body)
-    res.status(201).json({
-      status: true,
-      msg: 'Perfil creado con exito',
+    return success(res, 201, 'Perfil creado con exito', {
       profile: profileCreate,
     })
   } catch (error) {
-    res.status(500).json({
-      status: false,
-      msg: 'Error al crear el perfil: ' + error.message,
-      profile: [],
+    return failure(res, 500, 'Error al crear el perfil: ' + error.message, {
+      profile: null,
     })
   }
 }
@@ -43,25 +53,17 @@ const updateProfile = async (req, res) => {
     })
 
     if (profileUpdate[0] === 0) {
-      return res.status(404).json({
-        status: false,
-        msg: 'Perfil no encontrado o no se realizaron cambios',
-        profile: [],
-      })
+      return failure(res, 404, 'Perfil no encontrado o no se realizaron cambios', { profile: null })
     }
 
     const updatedProfile = await Profile.findByPk(id)
 
-    res.status(200).json({
-      status: true,
-      msg: 'Perfil actualizado con exito',
+    return success(res, 200, 'Perfil actualizado con exito', {
       profile: updatedProfile,
     })
   } catch (error) {
-    res.status(500).json({
-      status: false,
-      msg: 'Error al actualizar el perfil: ' + error.message,
-      profile: [],
+    return failure(res, 500, 'Error al actualizar el perfil: ' + error.message, {
+      profile: null,
     })
   }
 }
@@ -71,29 +73,22 @@ const destroyProfile = async (req, res) => {
     const { id } = req.params
     const profile = await Profile.findByPk(id)
     if (!profile) {
-      return res.status(404).json({
-        status: false,
-        msg: 'Perfil no encontrado',
-        profile: [],
-      })
+      return failure(res, 404, 'Perfil no encontrado', { profile: null })
     }
     await profile.destroy()
-    res.status(200).json({
-      status: true,
-      msg: 'Perfil eliminado con exito',
-      profile: profile,
+    return success(res, 200, 'Perfil eliminado con exito', {
+      profile,
     })
   } catch (error) {
-    res.status(500).json({
-      status: false,
-      msg: 'Error al eliminar el perfil: ' + error.message,
-      profile: [],
+    return failure(res, 500, 'Error al eliminar el perfil: ' + error.message, {
+      profile: null,
     })
   }
 }
 
 module.exports = {
   getProfiles,
+  getProfileById,
   createProfile,
   updateProfile,
   destroyProfile,

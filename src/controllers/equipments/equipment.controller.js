@@ -1,5 +1,7 @@
 const Equipment = require('../../models/Equipments/Equipment.model')
 const Client = require('../../models/Clients/Client.model')
+const { success, failure } = require('../../utils/apiResponse')
+const { handleRequestError } = require('../../utils/requestError')
 
 const enrichEquipment = async (equipment) => {
   if (!equipment) {
@@ -19,15 +21,11 @@ const getEquipments = async (req, res) => {
   try {
     const equipments = await Equipment.findAll()
     const hydratedEquipments = await Promise.all(equipments.map(enrichEquipment))
-    res.status(200).json({
-      status: true,
-      msg: 'Obteniendo equipos',
+    return success(res, 200, 'Obteniendo equipos', {
       equipments: hydratedEquipments,
     })
   } catch (error) {
-    res.status(500).json({
-      status: false,
-      msg: 'Error al conectar con el controlador equipment:' + error.message,
+    return failure(res, 500, 'Error al conectar con el controlador equipment:' + error.message, {
       equipments: [],
     })
   }
@@ -39,23 +37,15 @@ const getEquipmentById = async (req, res) => {
     const equipment = await Equipment.findByPk(id)
 
     if (!equipment) {
-      return res.status(404).json({
-        status: false,
-        msg: 'Equipo no encontrado',
-        equipment: [],
-      })
+      return failure(res, 404, 'Equipo no encontrado', { equipment: null })
     }
 
-    res.status(200).json({
-      status: true,
-      msg: 'Equipo encontrado',
+    return success(res, 200, 'Equipo encontrado', {
       equipment: await enrichEquipment(equipment),
     })
   } catch (error) {
-    res.status(500).json({
-      status: false,
-      msg: 'Error al obtener el equipo: ' + error.message,
-      equipment: [],
+    return failure(res, 500, 'Error al obtener el equipo: ' + error.message, {
+      equipment: null,
     })
   }
 }
@@ -63,16 +53,17 @@ const getEquipmentById = async (req, res) => {
 const createEquipment = async (req, res) => {
   try {
     const equipmentCreate = await Equipment.create(req.body)
-    res.status(201).json({
-      status: true,
-      msg: 'Equipo creado con exito',
-      equipment: equipmentCreate,
+    return success(res, 201, 'Equipo creado con exito', {
+      equipment: await enrichEquipment(equipmentCreate),
     })
   } catch (error) {
-    res.status(500).json({
-      status: false,
-      msg: 'Error al crear el equipo: ' + error.message,
-      equipment: [],
+    return handleRequestError({
+      context: 'equipments.create',
+      req,
+      res,
+      error,
+      fallbackMessage: 'Error al crear el equipo: ',
+      payloadKey: 'equipment',
     })
   }
 }
@@ -87,25 +78,22 @@ const updateEquipment = async (req, res) => {
     })
 
     if (equipmentUpdate[0] === 0) {
-      return res.status(404).json({
-        status: false,
-        msg: 'Equipo no encontrado o no se realizaron cambios',
-        equipment: [],
-      })
+      return failure(res, 404, 'Equipo no encontrado o no se realizaron cambios', { equipment: null })
     }
 
     const updatedEquipment = await Equipment.findByPk(id)
 
-    res.status(200).json({
-      status: true,
-      msg: 'Equipo actualizado con exito',
-      equipment: updatedEquipment,
+    return success(res, 200, 'Equipo actualizado con exito', {
+      equipment: await enrichEquipment(updatedEquipment),
     })
   } catch (error) {
-    res.status(500).json({
-      status: false,
-      msg: 'Error al actualizar el equipo: ' + error.message,
-      equipment: [],
+    return handleRequestError({
+      context: 'equipments.update',
+      req,
+      res,
+      error,
+      fallbackMessage: 'Error al actualizar el equipo: ',
+      payloadKey: 'equipment',
     })
   }
 }
@@ -115,23 +103,15 @@ const destroyEquipment = async (req, res) => {
     const { id } = req.params
     const equipment = await Equipment.findByPk(id)
     if (!equipment) {
-      return res.status(404).json({
-        status: false,
-        msg: 'Equipo no encontrado',
-        equipment: [],
-      })
+      return failure(res, 404, 'Equipo no encontrado', { equipment: null })
     }
     await equipment.destroy()
-    res.status(200).json({
-      status: true,
-      msg: 'Equipo eliminado con exito',
-      equipment: equipment,
+    return success(res, 200, 'Equipo eliminado con exito', {
+      equipment: await enrichEquipment(equipment),
     })
   } catch (error) {
-    res.status(500).json({
-      status: false,
-      msg: 'Error al eliminar el equipo: ' + error.message,
-      equipment: [],
+    return failure(res, 500, 'Error al eliminar el equipo: ' + error.message, {
+      equipment: null,
     })
   }
 }

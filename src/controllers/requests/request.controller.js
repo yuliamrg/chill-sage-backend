@@ -1,16 +1,14 @@
 const Request = require('../../models/Requests/request.model')
+const { success, failure } = require('../../utils/apiResponse')
+const { handleRequestError } = require('../../utils/requestError')
 const getRequests = async (req, res) => {
   try {
     const requests = await Request.findAll()
-    res.status(200).json({
-      status: true,
-      msg: 'Obteniendo solicitudes',
+    return success(res, 200, 'Obteniendo solicitudes', {
       requests: requests,
     })
   } catch (error) {
-    res.status(500).json({
-      status: false,
-      msg: 'Error al conectar con el controlador request:' + error.message,
+    return failure(res, 500, 'Error al conectar con el controlador request:' + error.message, {
       requests: [],
     })
   }
@@ -19,16 +17,17 @@ const getRequests = async (req, res) => {
 const createRequest = async (req, res) => {
   try {
     const requestCreate = await Request.create(req.body)
-    res.status(201).json({
-      status: true,
-      msg: 'Solicitud creada con exito',
+    return success(res, 201, 'Solicitud creada con exito', {
       request: requestCreate,
     })
   } catch (error) {
-    res.status(500).json({
-      status: false,
-      msg: 'Error al crear la solicitud: ' + error.message,
-      request: [],
+    return handleRequestError({
+      context: 'requests.create',
+      req,
+      res,
+      error,
+      fallbackMessage: 'Error al crear la solicitud: ',
+      payloadKey: 'request',
     })
   }
 }
@@ -39,23 +38,15 @@ const getRequestById = async (req, res) => {
     const request = await Request.findByPk(id)
 
     if (!request) {
-      return res.status(404).json({
-        status: false,
-        msg: 'Solicitud no encontrada',
-        request: [],
-      })
+      return failure(res, 404, 'Solicitud no encontrada', { request: null })
     }
 
-    res.status(200).json({
-      status: true,
-      msg: 'Solicitud encontrada',
+    return success(res, 200, 'Solicitud encontrada', {
       request,
     })
   } catch (error) {
-    res.status(500).json({
-      status: false,
-      msg: 'Error al obtener la solicitud: ' + error.message,
-      request: [],
+    return failure(res, 500, 'Error al obtener la solicitud: ' + error.message, {
+      request: null,
     })
   }
 }
@@ -70,25 +61,22 @@ const updateRequest = async (req, res) => {
     })
 
     if (requestUpdate[0] === 0) {
-      return res.status(404).json({
-        status: false,
-        msg: 'Solicitud no encontrada o no se realizaron cambios',
-        request: [],
-      })
+      return failure(res, 404, 'Solicitud no encontrada o no se realizaron cambios', { request: null })
     }
 
     const updatedRequest = await Request.findByPk(id)
 
-    res.status(200).json({
-      status: true,
-      msg: 'Solicitud actualizada con exito',
+    return success(res, 200, 'Solicitud actualizada con exito', {
       request: updatedRequest,
     })
   } catch (error) {
-    res.status(500).json({
-      status: false,
-      msg: 'Error al actualizar la solicitud: ' + error.message,
-      request: [],
+    return handleRequestError({
+      context: 'requests.update',
+      req,
+      res,
+      error,
+      fallbackMessage: 'Error al actualizar la solicitud: ',
+      payloadKey: 'request',
     })
   }
 }
@@ -98,23 +86,15 @@ const destroyRequest = async (req, res) => {
     const { id } = req.params
     const request = await Request.findByPk(id)
     if (!request) {
-      return res.status(404).json({
-        status: false,
-        msg: 'Solicitud no encontrada',
-        request: [],
-      })
+      return failure(res, 404, 'Solicitud no encontrada', { request: null })
     }
     await request.destroy()
-    res.status(200).json({
-      status: true,
-      msg: 'Solicitud eliminada con exito',
-      request: request,
+    return success(res, 200, 'Solicitud eliminada con exito', {
+      request,
     })
   } catch (error) {
-    res.status(500).json({
-      status: false,
-      msg: 'Error al eliminar la solicitud: ' + error.message,
-      request: [],
+    return failure(res, 500, 'Error al eliminar la solicitud: ' + error.message, {
+      request: null,
     })
   }
 }

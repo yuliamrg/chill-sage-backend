@@ -1,6 +1,8 @@
 const Order = require('../../models/Orders/Order.model')
 const User = require('../../models/Users/User.model')
 const Request = require('../../models/Requests/request.model')
+const { success, failure } = require('../../utils/apiResponse')
+const { handleRequestError } = require('../../utils/requestError')
 
 const enrichOrder = async (order) => {
   if (!order) {
@@ -24,15 +26,11 @@ const getOrders = async (req, res) => {
   try {
     const orders = await Order.findAll()
     const hydratedOrders = await Promise.all(orders.map(enrichOrder))
-    res.status(200).json({
-      status: true,
-      msg: 'Obteniendo ordenes',
+    return success(res, 200, 'Obteniendo ordenes', {
       orders: hydratedOrders,
     })
   } catch (error) {
-    res.status(500).json({
-      status: false,
-      msg: 'Error al conectar con el controlador order:' + error.message,
+    return failure(res, 500, 'Error al conectar con el controlador order:' + error.message, {
       orders: [],
     })
   }
@@ -41,16 +39,17 @@ const getOrders = async (req, res) => {
 const createOrder = async (req, res) => {
   try {
     const orderCreate = await Order.create(req.body)
-    res.status(201).json({
-      status: true,
-      msg: 'Orden creada con exito',
-      order: orderCreate,
+    return success(res, 201, 'Orden creada con exito', {
+      order: await enrichOrder(orderCreate),
     })
   } catch (error) {
-    res.status(500).json({
-      status: false,
-      msg: 'Error al crear la orden: ' + error.message,
-      order: [],
+    return handleRequestError({
+      context: 'orders.create',
+      req,
+      res,
+      error,
+      fallbackMessage: 'Error al crear la orden: ',
+      payloadKey: 'order',
     })
   }
 }
@@ -61,23 +60,15 @@ const getOrderById = async (req, res) => {
     const order = await Order.findByPk(id)
 
     if (!order) {
-      return res.status(404).json({
-        status: false,
-        msg: 'Orden no encontrada',
-        order: [],
-      })
+      return failure(res, 404, 'Orden no encontrada', { order: null })
     }
 
-    res.status(200).json({
-      status: true,
-      msg: 'Orden encontrada',
+    return success(res, 200, 'Orden encontrada', {
       order: await enrichOrder(order),
     })
   } catch (error) {
-    res.status(500).json({
-      status: false,
-      msg: 'Error al obtener la orden: ' + error.message,
-      order: [],
+    return failure(res, 500, 'Error al obtener la orden: ' + error.message, {
+      order: null,
     })
   }
 }
@@ -92,25 +83,22 @@ const updateOrder = async (req, res) => {
     })
 
     if (orderUpdate[0] === 0) {
-      return res.status(404).json({
-        status: false,
-        msg: 'Orden no encontrada o no se realizaron cambios',
-        order: [],
-      })
+      return failure(res, 404, 'Orden no encontrada o no se realizaron cambios', { order: null })
     }
 
     const updatedOrder = await Order.findByPk(id)
 
-    res.status(200).json({
-      status: true,
-      msg: 'Orden actualizada con exito',
-      order: updatedOrder,
+    return success(res, 200, 'Orden actualizada con exito', {
+      order: await enrichOrder(updatedOrder),
     })
   } catch (error) {
-    res.status(500).json({
-      status: false,
-      msg: 'Error al actualizar la orden: ' + error.message,
-      order: [],
+    return handleRequestError({
+      context: 'orders.update',
+      req,
+      res,
+      error,
+      fallbackMessage: 'Error al actualizar la orden: ',
+      payloadKey: 'order',
     })
   }
 }
@@ -120,23 +108,15 @@ const destroyOrder = async (req, res) => {
     const { id } = req.params
     const order = await Order.findByPk(id)
     if (!order) {
-      return res.status(404).json({
-        status: false,
-        msg: 'Orden no encontrada',
-        order: [],
-      })
+      return failure(res, 404, 'Orden no encontrada', { order: null })
     }
     await order.destroy()
-    res.status(200).json({
-      status: true,
-      msg: 'Orden eliminada con exito',
-      order: order,
+    return success(res, 200, 'Orden eliminada con exito', {
+      order: await enrichOrder(order),
     })
   } catch (error) {
-    res.status(500).json({
-      status: false,
-      msg: 'Error al eliminar la orden: ' + error.message,
-      order: [],
+    return failure(res, 500, 'Error al eliminar la orden: ' + error.message, {
+      order: null,
     })
   }
 }

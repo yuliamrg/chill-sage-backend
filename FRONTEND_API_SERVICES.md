@@ -1,215 +1,153 @@
-# Guia para Crear Servicios de Frontend Contra la API Actual
+# Guia de Integracion Frontend con la API Actual
 
-Documento de integracion para desarrollo frontend consumiendo este backend tal como existe hoy.
+Documento de referencia del backend segun el codigo actual.
 
 Fecha de referencia: 2026-03-20
 
-## Alcance
+## Uso de este documento
 
-Esta guia describe el comportamiento actual del backend, no el deseado a futuro.
+Este archivo es el contrato operativo entre:
 
-Puntos importantes:
+- backend: `../chillsage-backend`
+- frontend: `../chillsage-frontend`
 
-- No hay autenticacion obligatoria en las rutas CRUD.
-- El login existe, pero no entrega token.
-- Las respuestas no siguen un contrato unico en todos los endpoints.
-- El frontend debe consumir la API con una capa de normalizacion.
+Regla:
+
+- Si cambias campos, llaves, endpoints o relaciones enriquecidas en backend, debes actualizar este documento en el mismo cambio.
+- Despues de actualizar este documento, debes reflejar el cambio en el frontend antes de considerar terminado el trabajo.
+
+## Donde se refleja un cambio en frontend
+
+Cuando cambie el contrato del backend, revisa como minimo estos archivos del frontend:
+
+- `src/app/core/models/domain.models.ts`
+- `src/app/core/mappers/domain.mappers.ts`
+- `src/app/core/services/<resource>.service.ts`
+- componentes de lista, detalle, create y edit del recurso
+
+## Protocolo de cambio de contrato
+
+Aplica este flujo para cualquier recurso, por ejemplo `requests`:
+
+1. Actualiza modelo, controlador y rutas del backend.
+2. Actualiza este documento:
+   - campos de entrada,
+   - campos de salida,
+   - llaves de respuesta,
+   - campos enriquecidos,
+   - ejemplos si cambiaron.
+3. Actualiza frontend:
+   - `domain.models.ts` para el shape de UI,
+   - `domain.mappers.ts` para mapear API -> VM y Form -> API,
+   - `<resource>.service.ts` si cambia endpoint o payload,
+   - formularios/listados si el campo se captura o se presenta.
+4. Verifica:
+   - backend con arranque local o `node --check`,
+   - frontend con `npm run build`.
+
+## Matriz de impacto rapido
+
+| Cambio en backend | Impacto obligatorio en frontend |
+| --- | --- |
+| Agregar campo de salida | agregar propiedad en VM y mapearla en `map<Resource>` |
+| Agregar campo de entrada | agregar control en formulario y mapearlo en `map<Resource>FormToApi` |
+| Renombrar campo | actualizar mapper, modelos y componentes que lo usan |
+| Eliminar campo | quitarlo de VM, mappers, formularios, tablas y detalle |
+| Cambiar llave de respuesta | actualizar `<resource>.service.ts` |
+| Agregar campo enriquecido | mapearlo y mostrarlo donde la UI lo necesite |
+
+## Ejemplo: cambio en solicitudes
+
+Si el controlador de `requests` agrega, elimina o renombra campos:
+
+1. Actualiza la seccion `requests` de este documento.
+2. Cambia `RequestVm` y `RequestFormValue` en `../chillsage-frontend/src/app/core/models/domain.models.ts`.
+3. Cambia `mapRequest` y `mapRequestFormToApi` en `../chillsage-frontend/src/app/core/mappers/domain.mappers.ts`.
+4. Ajusta `../chillsage-frontend/src/app/core/services/requests.service.ts` si cambia el endpoint o la llave `request/requests`.
+5. Ajusta los componentes bajo `../chillsage-frontend/src/app/features/requests/`.
+
+Sin ese recorrido, el cambio queda incompleto aunque ambos proyectos sigan levantando.
 
 ## Base URL
 
-Por defecto el backend corre en:
+La API expone sus rutas bajo:
 
 ```text
-http://localhost:3000/api
+http://localhost:<PORT>/api
 ```
 
-Si `PORT` cambia, ajusta la URL base.
-
-## Recomendacion de estructura en frontend
-
-Crear una capa simple asi:
+Valor actual en este proyecto:
 
 ```text
-src/
-  services/
-    apiClient.ts
-    users.service.ts
-    clients.service.ts
-    roles.service.ts
-    schedules.service.ts
-    requests.service.ts
-    profiles.service.ts
-    orders.service.ts
-    equipments.service.ts
+http://localhost:3037/api
 ```
 
-## Cliente HTTP base
+El puerto real depende de `PORT` en `.env`. Si no existe, el backend usa `3000`.
 
-Puedes usar `fetch` o `axios`. Lo importante es centralizar:
+## Contrato unificado de respuestas
 
-- `baseURL`
-- headers JSON
-- parseo de errores
-- normalizacion de respuestas
-
-Ejemplo con `fetch`:
-
-```ts
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:3000/api'
-
-type HttpMethod = 'GET' | 'POST' | 'PUT' | 'DELETE'
-
-async function apiRequest<T>(path: string, method: HttpMethod, body?: unknown): Promise<T> {
-  const response = await fetch(`${API_BASE_URL}${path}`, {
-    method,
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: body ? JSON.stringify(body) : undefined,
-  })
-
-  const data = await response.json().catch(() => ({}))
-
-  if (!response.ok) {
-    const message =
-      data?.msg ??
-      data?.message ??
-      data?.error ??
-      'Error inesperado al consumir la API'
-
-    throw new Error(message)
-  }
-
-  return data as T
-}
-
-export { apiRequest }
-```
-
-## Recurso users
-
-Rutas disponibles:
-
-- `GET /users`
-- `GET /users/:id`
-- `POST /users`
-- `PUT /users/:id`
-- `DELETE /users/:id`
-- `POST /users/login`
-
-### Formas de respuesta
-
-`GET /users`
+Todas las respuestas JSON del backend siguen ahora esta estructura base:
 
 ```json
 {
   "status": true,
-  "msg": "Obteniendo usuarios",
-  "users": []
+  "msg": "Mensaje descriptivo",
+  "...payload": "datos"
 }
 ```
 
-`GET /users/:id`
+### Exito con lista
 
 ```json
 {
   "status": true,
-  "msg": "Usuario encontrado",
-  "user": {}
+  "msg": "Obteniendo clientes",
+  "clients": []
 }
 ```
 
-`POST /users`
+### Exito con item
 
 ```json
 {
   "status": true,
-  "msg": "Usuario creado con exito",
-  "user": {}
+  "msg": "Cliente encontrado",
+  "client": {}
 }
 ```
 
-`POST /users/login`
+### Error con lista
 
 ```json
 {
-  "message": "Inicio de sesion exitoso",
-  "user": {}
+  "status": false,
+  "msg": "Error al conectar con el controlador client: ...",
+  "clients": []
 }
 ```
 
-### Payload sugerido para crear usuario
+### Error con item
 
-Campos que el backend acepta hoy:
-
-- `username`
-- `name`
-- `last_name`
-- `email`
-- `password`
-- `client`
-- `role`
-- `status`
-- `user_created_id`
-- `user_updated_id`
-
-Notas:
-
-- Si no envias `status`, el backend usa `active`.
-- Si no envias `role`, el backend usa `2`.
-- El password se hashea en backend.
-- El login busca por `email` o `username`.
-
-### Servicio sugerido
-
-```ts
-import { apiRequest } from './apiClient'
-
-export const usersService = {
-  getAll: async () => {
-    const data = await apiRequest<{ users: unknown[] }>('/users', 'GET')
-    return data.users
-  },
-
-  getById: async (id: number | string) => {
-    const data = await apiRequest<{ user: unknown }>('/users/' + id, 'GET')
-    return data.user
-  },
-
-  create: async (payload: Record<string, unknown>) => {
-    const data = await apiRequest<{ user: unknown }>('/users', 'POST', payload)
-    return data.user
-  },
-
-  update: async (id: number | string, payload: Record<string, unknown>) => {
-    const data = await apiRequest<{ user: unknown }>('/users/' + id, 'PUT', payload)
-    return data.user
-  },
-
-  remove: async (id: number | string) => {
-    const data = await apiRequest<{ user: unknown }>('/users/' + id, 'DELETE')
-    return data.user
-  },
-
-  login: async (payload: { email?: string; username?: string; password: string }) => {
-    const data = await apiRequest<{ user: unknown }>('/users/login', 'POST', payload)
-    return data.user
-  },
+```json
+{
+  "status": false,
+  "msg": "Cliente no encontrado",
+  "client": null
 }
 ```
 
-## Recursos CRUD simples
+## Convenciones por recurso
 
-Estos recursos comparten el mismo patron:
+- Los endpoints de listado devuelven una llave plural.
+- Los endpoints `getById`, `create`, `update` y `delete` devuelven una llave singular.
+- En errores de item, la llave singular llega como `null`.
+- En errores de lista, la llave plural llega como `[]`.
 
-- `GET /<resource>`
-- `GET /<resource>/:id`
-- `POST /<resource>`
-- `PUT /<resource>/:id`
-- `DELETE /<resource>/:id`
+## Recursos disponibles
 
-Recursos:
+Todos estos recursos tienen contrato CRUD consistente:
 
+- `users`
 - `clients`
 - `roles`
 - `schedules`
@@ -218,54 +156,25 @@ Recursos:
 - `orders`
 - `equipments`
 
-### Forma general de respuesta
+### Endpoints por recurso
 
-Listado:
+Para cada recurso anterior existen:
 
-```json
-{
-  "status": true,
-  "msg": "Obteniendo ...",
-  "<pluralKey>": []
-}
-```
+- `GET /<resource>`
+- `GET /<resource>/:id`
+- `POST /<resource>`
+- `PUT /<resource>/:id`
+- `DELETE /<resource>/:id`
 
-Creacion:
+Excepcion adicional:
 
-```json
-{
-  "status": true,
-  "msg": "... creado con exito",
-  "<singularKey>": {}
-}
-```
+- `POST /users/login`
 
-Actualizacion:
-
-```json
-{
-  "status": true,
-  "msg": "... actualizado con exito",
-  "<singularKey>": {}
-}
-```
-
-Eliminacion:
-
-```json
-{
-  "status": true,
-  "msg": "... eliminado con exito",
-  "<singularKey>": {}
-}
-```
-
-### Llaves reales por recurso
-
-Usa estas propiedades para leer la data:
+## Llaves reales por recurso
 
 | Recurso | Llave listado | Llave item |
 | --- | --- | --- |
+| users | `users` | `user` |
 | clients | `clients` | `client` |
 | roles | `roles` | `role` |
 | schedules | `schedules` | `schedule` |
@@ -274,74 +183,98 @@ Usa estas propiedades para leer la data:
 | orders | `orders` | `order` |
 | equipments | `equipments` | `equipment` |
 
-### Recursos con `getById` disponible
+## Login
 
-En el codigo actual puedes implementar `getById` para:
+Ruta:
 
-- `clients`
-- `roles`
-- `schedules`
-- `requests`
-- `profiles`
-- `orders`
-- `equipments`
+- `POST /users/login`
 
-### Campos enriquecidos a considerar
+Payload esperado:
 
-Algunas respuestas de lectura ya incluyen datos listos para UI:
-
-- `users`: `client_name`, `role_name`
-- `orders`: `assigned_user_name`, `request_summary`
-- `equipments`: `client_name`
-
-Tratalos como campos derivados. Para guardar o editar, sigue usando los ids originales.
-
-### Factory opcional para reducir codigo
-
-```ts
-import { apiRequest } from './apiClient'
-
-function createCrudService<T>(resource: string, listKey: string, itemKey: string) {
-  return {
-    getAll: async (): Promise<T[]> => {
-      const data = await apiRequest<Record<string, T[]>>(`/${resource}`, 'GET')
-      return data[listKey] ?? []
-    },
-
-    getById: async (id: number | string): Promise<T> => {
-      const data = await apiRequest<Record<string, T>>(`/${resource}/${id}`, 'GET')
-      return data[itemKey]
-    },
-
-    create: async (payload: Record<string, unknown>): Promise<T> => {
-      const data = await apiRequest<Record<string, T>>(`/${resource}`, 'POST', payload)
-      return data[itemKey]
-    },
-
-    update: async (id: number | string, payload: Record<string, unknown>): Promise<T> => {
-      const data = await apiRequest<Record<string, T>>(`/${resource}/${id}`, 'PUT', payload)
-      return data[itemKey]
-    },
-
-    remove: async (id: number | string): Promise<T> => {
-      const data = await apiRequest<Record<string, T>>(`/${resource}/${id}`, 'DELETE')
-      return data[itemKey]
-    },
-  }
+```json
+{
+  "email": "usuario@correo.com",
+  "password": "secreta"
 }
-
-export const clientsService = createCrudService('clients', 'clients', 'client')
-export const rolesService = createCrudService('roles', 'roles', 'role')
-export const schedulesService = createCrudService('schedules', 'schedules', 'schedule')
-export const requestsService = createCrudService('requests', 'requests', 'request')
-export const profilesService = createCrudService('profiles', 'profiles', 'profile')
-export const ordersService = createCrudService('orders', 'orders', 'order')
-export const equipmentsService = createCrudService('equipments', 'equipments', 'equipment')
 ```
 
-## Campos por recurso
+Tambien puede enviarse `username` en lugar de `email`.
 
-Usa esto como referencia para formularios y tipos frontend.
+Respuesta exitosa:
+
+```json
+{
+  "status": true,
+  "msg": "Inicio de sesion exitoso",
+  "user": {}
+}
+```
+
+Respuesta de error:
+
+```json
+{
+  "status": false,
+  "msg": "Usuario no encontrado",
+  "user": null
+}
+```
+
+Notas:
+
+- No se entrega token.
+- Las credenciales invalidas responden `401`.
+- El campo `password` nunca se devuelve.
+
+## Campos enriquecidos
+
+Algunos recursos incluyen campos adicionales resueltos por backend para uso directo en UI.
+
+### users
+
+Lectura y mutaciones devuelven:
+
+- `client_name`
+- `role_name`
+
+### orders
+
+Lectura y mutaciones devuelven:
+
+- `assigned_user_name`
+- `request_summary`
+
+### equipments
+
+Lectura y mutaciones devuelven:
+
+- `client_name`
+
+Esto aplica a:
+
+- `GET /resource`
+- `GET /resource/:id`
+- `POST /resource`
+- `PUT /resource/:id`
+- `DELETE /resource/:id`
+
+## Campos esperados por recurso
+
+### users
+
+- `id`
+- `username`
+- `name`
+- `last_name`
+- `email`
+- `password` solo entrada
+- `client`
+- `role`
+- `status`
+- `client_name`
+- `role_name`
+- `user_created_id`
+- `user_updated_id`
 
 ### clients
 
@@ -435,65 +368,41 @@ Usa esto como referencia para formularios y tipos frontend.
 - `user_created_id`
 - `user_updated_id`
 
-## Recomendaciones practicas para el frontend actual
+## Recomendaciones para el frontend
 
-### 1. No dependas de token
+- Centraliza `baseURL` y no la hardcodees por pantalla.
+- Usa siempre `msg` como mensaje principal de backend.
+- Trata `status === false` como fallo de negocio o de transporte aun si la forma del payload ya es conocida.
+- Para listas, consume la llave plural del recurso.
+- Para detalle y mutaciones, consume la llave singular del recurso.
 
-Hoy el backend no usa Bearer token. Mientras siga asi:
+## Ejemplos de consumo
 
-- no agregues interceptor de autorizacion obligatorio
-- guarda el usuario de login solo para estado UI
-- no asumas persistencia de sesion desde backend
+### GET /clients
 
-### 2. Normaliza errores
-
-El backend puede responder con:
-
-- `msg`
-- `message`
-- `error`
-
-Tu capa HTTP debe convertir eso a una sola forma util para la UI.
-
-### 3. Normaliza entidades
-
-Como algunas respuestas usan llaves distintas, conviene que tus servicios siempre retornen solo la entidad o el arreglo, no la respuesta completa.
-
-### 4. Maneja 404 y 401 de forma simple
-
-Hoy el login devuelve `401` si no encuentra usuario o si la contrasena es incorrecta.
-
-Sugerencia:
-
-- mostrar mensaje de credenciales invalidas
-- no diferenciar demasiado en la UI
-
-### 5. Evita exponer campos internos si no los necesitas
-
-Aunque el backend acepte campos como `user_created_id` o `user_updated_id`, no los muestres ni edites desde formularios si no aportan valor en esta etapa.
-
-## Ejemplo de variables de entorno frontend
-
-```env
-VITE_API_BASE_URL=http://localhost:3000/api
+```ts
+const response = await http.get('/clients')
+const clients = response.clients
 ```
 
-## Checklist de integracion rapida
+### GET /clients/1
 
-1. Levantar backend en `http://localhost:3000`.
-2. Configurar `VITE_API_BASE_URL`.
-3. Crear `apiClient`.
-4. Crear `usersService`.
-5. Crear factory CRUD para el resto.
-6. Normalizar errores y respuestas.
-7. Probar manualmente login, listado, creacion, edicion y eliminacion.
+```ts
+const response = await http.get('/clients/1')
+const client = response.client
+```
 
-## Limitaciones actuales a tener presentes
+### POST /users
 
-- Sin token ni middleware de auth.
-- Sin paginacion.
-- Sin filtros.
-- Sin contrato uniforme de errores.
-- Sin pruebas automatizadas en backend.
+```ts
+const response = await http.post('/users', payload)
+const user = response.user
+```
 
-Eso no impide el desarrollo del frontend ahora, pero si exige una capa de servicios ordenada para absorber futuros cambios del backend.
+## Limitaciones actuales
+
+- No hay autenticacion basada en token.
+- No hay paginacion.
+- No hay filtros dedicados por query en los CRUD.
+- No existe un formato RFC estandar de errores; el contrato es uniforme dentro del proyecto, no un estandar externo.
+- No hay pruebas automatizadas del backend.

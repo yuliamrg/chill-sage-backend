@@ -4,6 +4,8 @@ const cors = require('cors') //cors para permitir peticiones desde otros dominio
 const db = require('./src/models/database/dbconnection') //conectar a la base de datos
 const routes = require('./src/routes/api.routes')
 const express = require('express')
+const { failure } = require('./src/utils/apiResponse')
+const { logRequestError } = require('./src/utils/requestError')
 const app = express() //crear una app de express
 
 // middlewares
@@ -14,14 +16,19 @@ app.use('/api', routes)
 // Custom error handler for JSON parsing errors
 app.use((err, req, res, next) => {
   if (err instanceof SyntaxError && err.status === 400 && 'body' in err) {
-    return res.status(400).json({ 
-      error: 'Invalid JSON format', 
+    logRequestError('http.invalid-json', req, err)
+    return failure(res, 400, 'Invalid JSON format', {
       details: err.message,
-      position: err.message.match(/position (\d+)/)?.[1] || 'unknown'
-    });
+      position: err.message.match(/position (\d+)/)?.[1] || 'unknown',
+    })
   }
-  next(err);
-});
+  next(err)
+})
+
+app.use((err, req, res, next) => {
+  logRequestError('http.unhandled', req, err)
+  return failure(res, err?.status || 500, err?.message || 'Unexpected server error', {})
+})
 
 const port = process.env.PORT || 3000
 
