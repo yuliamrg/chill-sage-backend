@@ -59,12 +59,12 @@ Equipment.init(
     use_end_at: {
       type: DataTypes.DATE,
     },
-    createdAt: {
+    created_at: {
       field: 'created_at',
       type: DataTypes.DATE,
       allowNull: false,
     },
-    updatedAt: {
+    updated_at: {
       field: 'updated_at',
       type: DataTypes.DATE,
     },
@@ -88,6 +88,8 @@ Equipment.init(
     modelName: 'Equipment',
     tableName: 'equipments',
     timestamps: true,
+    createdAt: 'created_at',
+    updatedAt: 'updated_at',
     indexes: [
       {
         unique: true,

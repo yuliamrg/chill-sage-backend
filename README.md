@@ -8,7 +8,7 @@ Backend REST construido con `Express` y `Sequelize` para administrar usuarios, c
 - Express 4
 - Sequelize 6
 - MySQL
-- bcrypt
+- bcrypt 6
 
 ## Estructura
 
@@ -43,6 +43,8 @@ El proyecto usa estas variables:
 - `DB_USER`: usuario de base de datos.
 - `DB_PASSWORD`: contrasena de base de datos.
 - `DB_HOSTNAME`: host de MySQL. Si no existe, usa `127.0.0.1`.
+- `DB_PORT`: puerto de MySQL. Si no existe, usa `3306`.
+- `DB_SYNC`: si vale `true`, ejecuta `db.sync({ force: false })` al iniciar. Por defecto no sincroniza el esquema automaticamente.
 
 Referencia rapida en [`.env.example`](/C:/Users/yulia/Documents/projects/chillsage/chillsage-backend/.env.example).
 
@@ -62,9 +64,17 @@ npm start
 
 La conexion real configurada en el codigo usa MySQL con Sequelize, en [dbconnection.js](/C:/Users/yulia/Documents/projects/chillsage/chillsage-backend/src/models/database/dbconnection.js).
 
-El archivo [`db.yml`](/C:/Users/yulia/Documents/projects/chillsage/chillsage-backend/db.yml) contiene un ejemplo de `docker run` para levantar MySQL en el puerto `3307`, pero el codigo no expone una variable `DB_PORT`. Si se usa ese contenedor, hay que ajustar el acceso a la BD en consecuencia.
+El archivo [`db.yml`](/C:/Users/yulia/Documents/projects/chillsage/chillsage-backend/db.yml) contiene un ejemplo de `docker run` para levantar MySQL. La app permite configurar el puerto con `DB_PORT`.
 
-Al iniciar, el servidor ejecuta `db.sync({ force: false })`, por lo que Sequelize intentara sincronizar las tablas automaticamente.
+Comportamiento de arranque:
+
+- Siempre valida la conexion con `db.authenticate()` antes de abrir el puerto HTTP.
+- Solo ejecuta sincronizacion de modelos si `DB_SYNC=true`.
+
+Uso recomendado:
+
+- En una base de datos existente: iniciar con `DB_SYNC` ausente o en `false`.
+- En desarrollo controlado, con esquema alineado al codigo: usar `DB_SYNC=true` si realmente necesitas que Sequelize cree o ajuste tablas faltantes.
 
 ## API
 
@@ -111,6 +121,8 @@ Body esperado:
 
 La busqueda se hace por `email` o `username`.
 
+La respuesta no expone el hash de `password`.
+
 ### Manejo de JSON invalido
 
 Si el body contiene JSON mal formado, el middleware global responde `400` con:
@@ -125,7 +137,7 @@ Si el body contiene JSON mal formado, el middleware global responde `400` con:
 
 ## Modelos
 
-Campos observados por modelo:
+Campos definidos por modelo:
 
 ### `users`
 
@@ -187,8 +199,8 @@ Notas:
 ### `orders`
 
 - `id`
-- `user_asigned_id`
-- `resquest_id`
+- `user_assigned_id`
+- `request_id`
 - `status`
 - `start_date`
 - `end_date`
@@ -223,17 +235,28 @@ Notas:
 ### `roles`
 
 - `id`
-- `name`
 - `description`
-- `status`
 - `created_at`
 - `updated_at`
 - `user_created_id`
 - `user_updated_id`
 
+Nota:
+
+- El modelo actual usa `description` como campo unico.
+
 ### `profiles`
 
-El recurso existe en rutas y controlador, pero su modelo tiene inconsistencias y hoy no representa con claridad una tabla `profiles`. Ver detalles en [`REVIEW.md`](/C:/Users/yulia/Documents/projects/chillsage/chillsage-backend/REVIEW.md).
+- `id`
+- `description`
+- `created_at`
+- `updated_at`
+- `user_created_id`
+- `user_updated_id`
+
+Nota:
+
+- Si la tabla `profiles` no existe, Sequelize puede crearla cuando `DB_SYNC=true`.
 
 ## Ejemplos rapidos
 
@@ -253,7 +276,14 @@ curl http://localhost:3000/api/equipments
 
 ## Estado actual
 
-La documentacion de uso de este archivo describe el comportamiento observado en el codigo actual. Los problemas detectados durante la revision quedaron separados en [`REVIEW.md`](/C:/Users/yulia/Documents/projects/chillsage/chillsage-backend/REVIEW.md).
+El backend arranca correctamente con `npm start` siempre que la base de datos configurada este disponible y el puerto HTTP no este ocupado.
+
+Cambios recientes relevantes:
+
+- `orders` ya usa `user_assigned_id` y `request_id` como nombres canonicos en codigo y base de datos.
+- `bcrypt` fue actualizado a la rama `6.x`, eliminando el warning deprecado que venia por `@mapbox/node-pre-gyp` al arrancar en Node 24.
+
+La documentacion de uso de este archivo describe el comportamiento actual del codigo. Los pendientes tecnicos vigentes quedaron resumidos en [`REVIEW.md`](/C:/Users/yulia/Documents/projects/chillsage/chillsage-backend/REVIEW.md).
 
 ## Reglas de Git
 

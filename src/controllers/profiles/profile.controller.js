@@ -1,12 +1,10 @@
 const Profile = require('../../models/Profiles/Profile.model')
-const { Op } = require('sequelize')
-
 const getProfiles = async (req, res) => {
   try {
     const profiles = await Profile.findAll()
     res.status(200).json({
       status: true,
-      msg: 'Obeniendo perfiles',
+      msg: 'Obteniendo perfiles',
       profiles: profiles,
     })
   } catch (error) {
@@ -23,7 +21,7 @@ const createProfile = async (req, res) => {
     const profileCreate = await Profile.create(req.body)
     res.status(201).json({
       status: true,
-      msg: 'perfil creado con exito',
+      msg: 'Perfil creado con exito',
       profile: profileCreate,
     })
   } catch (error) {
@@ -43,10 +41,21 @@ const updateProfile = async (req, res) => {
         id: id,
       },
     })
-    res.status(201).json({
+
+    if (profileUpdate[0] === 0) {
+      return res.status(404).json({
+        status: false,
+        msg: 'Perfil no encontrado o no se realizaron cambios',
+        profile: [],
+      })
+    }
+
+    const updatedProfile = await Profile.findByPk(id)
+
+    res.status(200).json({
       status: true,
-      msg: 'perfil actualizado con exito',
-      profile: profileUpdate,
+      msg: 'Perfil actualizado con exito',
+      profile: updatedProfile,
     })
   } catch (error) {
     res.status(500).json({
@@ -60,18 +69,18 @@ const updateProfile = async (req, res) => {
 const destroyProfile = async (req, res) => {
   try {
     const { id } = req.params
-    const profile = await profile.findByPk(id)
+    const profile = await Profile.findByPk(id)
     if (!profile) {
       return res.status(404).json({
         status: false,
-        msg: 'perfil no encontrado',
+        msg: 'Perfil no encontrado',
         profile: [],
       })
     }
     await profile.destroy()
     res.status(200).json({
       status: true,
-      msg: 'perfil eliminado con exito',
+      msg: 'Perfil eliminado con exito',
       profile: profile,
     })
   } catch (error) {

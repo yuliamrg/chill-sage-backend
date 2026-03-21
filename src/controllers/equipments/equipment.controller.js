@@ -1,11 +1,10 @@
 const Equipment = require('../../models/Equipments/Equipment.model')
-const { Op } = require('sequelize')
 const getEquipments = async (req, res) => {
   try {
     const equipments = await Equipment.findAll()
     res.status(200).json({
       status: true,
-      msg: 'Obeniendo equipos',
+      msg: 'Obteniendo equipos',
       equipments: equipments,
     })
   } catch (error) {
@@ -22,7 +21,7 @@ const createEquipment = async (req, res) => {
     const equipmentCreate = await Equipment.create(req.body)
     res.status(201).json({
       status: true,
-      msg: 'equipo creado con exito',
+      msg: 'Equipo creado con exito',
       equipment: equipmentCreate,
     })
   } catch (error) {
@@ -42,10 +41,21 @@ const updateEquipment = async (req, res) => {
         id: id,
       },
     })
-    res.status(201).json({
+
+    if (equipmentUpdate[0] === 0) {
+      return res.status(404).json({
+        status: false,
+        msg: 'Equipo no encontrado o no se realizaron cambios',
+        equipment: [],
+      })
+    }
+
+    const updatedEquipment = await Equipment.findByPk(id)
+
+    res.status(200).json({
       status: true,
-      msg: 'equipo actualizado con exito',
-      equipment: equipmentUpdate,
+      msg: 'Equipo actualizado con exito',
+      equipment: updatedEquipment,
     })
   } catch (error) {
     res.status(500).json({
@@ -63,14 +73,14 @@ const destroyEquipment = async (req, res) => {
     if (!equipment) {
       return res.status(404).json({
         status: false,
-        msg: 'equipo no encontrado',
+        msg: 'Equipo no encontrado',
         equipment: [],
       })
     }
     await equipment.destroy()
     res.status(200).json({
       status: true,
-      msg: 'equipo eliminado con exito',
+      msg: 'Equipo eliminado con exito',
       equipment: equipment,
     })
   } catch (error) {

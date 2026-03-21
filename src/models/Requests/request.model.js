@@ -47,6 +47,8 @@ Request.init({
   modelName: "Request",
   tableName: "requests",
   timestamps: true,
+  createdAt: 'created_at',
+  updatedAt: 'updated_at',
 });
 
 module.exports = Request

@@ -12,14 +12,7 @@ Role.init(
       autoIncrement: true,
       allowNull: false,
     },
-    name: {
-      type: DataTypes.STRING,
-      allowNull: false,
-    },
     description: {
-      type: DataTypes.STRING,
-    },
-    status: {
       type: DataTypes.STRING,
       allowNull: false,
     },
@@ -52,10 +45,12 @@ Role.init(
     modelName: 'Role',
     tableName: 'roles',
     timestamps: true,
+    createdAt: 'created_at',
+    updatedAt: 'updated_at',
     indexes: [
       {
         unique: true,
-        fields: ['name'],
+        fields: ['description'],
       },
     ],
   }

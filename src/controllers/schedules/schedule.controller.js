@@ -1,12 +1,10 @@
 const Schedule = require('../../models/Schedules/Schedule.model')
-const { Op } = require('sequelize')
-
 const getSchedules = async (req, res) => {
   try {
     const schedules = await Schedule.findAll()
     res.status(200).json({
       status: true,
-      msg: 'Obeniendo equipos',
+      msg: 'Obteniendo horarios',
       schedules: schedules,
     })
   } catch (error) {
@@ -23,13 +21,13 @@ const createSchedule = async (req, res) => {
     const scheduleCreate = await Schedule.create(req.body)
     res.status(201).json({
       status: true,
-      msg: 'equipo creado con exito',
+      msg: 'Horario creado con exito',
       schedule: scheduleCreate,
     })
   } catch (error) {
     res.status(500).json({
       status: false,
-      msg: 'Error al crear el equipo: ' + error.message,
+      msg: 'Error al crear el horario: ' + error.message,
       schedule: [],
     })
   }
@@ -43,15 +41,26 @@ const updateSchedule = async (req, res) => {
         id: id,
       },
     })
-    res.status(201).json({
+
+    if (scheduleUpdate[0] === 0) {
+      return res.status(404).json({
+        status: false,
+        msg: 'Horario no encontrado o no se realizaron cambios',
+        schedule: [],
+      })
+    }
+
+    const updatedSchedule = await Schedule.findByPk(id)
+
+    res.status(200).json({
       status: true,
-      msg: 'equipo actualizado con exito',
-      schedule: scheduleUpdate,
+      msg: 'Horario actualizado con exito',
+      schedule: updatedSchedule,
     })
   } catch (error) {
     res.status(500).json({
       status: false,
-      msg: 'Error al actualizar el equipo: ' + error.message,
+      msg: 'Error al actualizar el horario: ' + error.message,
       schedule: [],
     })
   }
@@ -64,20 +73,20 @@ const destroySchedule = async (req, res) => {
     if (!schedule) {
       return res.status(404).json({
         status: false,
-        msg: 'equipo no encontrado',
+        msg: 'Horario no encontrado',
         schedule: [],
       })
     }
     await schedule.destroy()
     res.status(200).json({
       status: true,
-      msg: 'equipo eliminado con exito',
+      msg: 'Horario eliminado con exito',
       schedule: schedule,
     })
   } catch (error) {
     res.status(500).json({
       status: false,
-      msg: 'Error al eliminar el equipo: ' + error.message,
+      msg: 'Error al eliminar el horario: ' + error.message,
       schedule: [],
     })
   }

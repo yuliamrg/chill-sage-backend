@@ -2,9 +2,9 @@ const { Model, DataTypes } = require('sequelize')
 
 const sequelize = require('../database/dbconnection')
 
-class Role extends Model {}
+class Profile extends Model {}
 
-Role.init(
+Profile.init(
   {
     id: {
       type: DataTypes.INTEGER,
@@ -42,9 +42,11 @@ Role.init(
   },
   {
     sequelize,
-    modelName: 'Role',
-    tableName: 'roles',
+    modelName: 'Profile',
+    tableName: 'profiles',
     timestamps: true,
+    createdAt: 'created_at',
+    updatedAt: 'updated_at',
     indexes: [
       {
         unique: true,
@@ -54,4 +56,4 @@ Role.init(
   }
 )
 
-module.exports = Role
+module.exports = Profile

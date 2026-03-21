@@ -47,9 +47,11 @@ Schedule.init({
   },
 }, {
   sequelize,
-  modelName: "Scheule",
+  modelName: "Schedule",
   tableName: "schedules",
   timestamps: true,
+  createdAt: 'created_at',
+  updatedAt: 'updated_at',
 });
 
 module.exports = Schedule

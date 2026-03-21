@@ -23,16 +23,25 @@ app.use((err, req, res, next) => {
   next(err);
 });
 
-// Servidor
 const port = process.env.PORT || 3000
-app.listen(port, () => {
-  //conectarse a la base de datos
-  db.sync({ force: false })
-    .then(() => {
-      console.log('Database connected!')
+
+const startServer = async () => {
+  try {
+    await db.authenticate()
+
+    if (process.env.DB_SYNC === 'true') {
+      await db.sync({ force: false })
+    }
+
+    console.log('Database connected!')
+
+    app.listen(port, () => {
+      console.log(`Server running on port ${port}`)
     })
-    .catch((error) => {
-      console.log('Database connection error:', error)
-    })
-  console.log(`Server running on port ${port}`)
-})
+  } catch (error) {
+    console.error('Database connection error:', error)
+    process.exit(1)
+  }
+}
+
+startServer()

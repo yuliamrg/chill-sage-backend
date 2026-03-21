@@ -1,12 +1,10 @@
-const Request = require('../../models/Requests/Request.model')
-const { Op } = require('sequelize')
-
+const Request = require('../../models/Requests/request.model')
 const getRequests = async (req, res) => {
   try {
     const requests = await Request.findAll()
     res.status(200).json({
       status: true,
-      msg: 'Obeniendo equipos',
+      msg: 'Obteniendo solicitudes',
       requests: requests,
     })
   } catch (error) {
@@ -23,13 +21,13 @@ const createRequest = async (req, res) => {
     const requestCreate = await Request.create(req.body)
     res.status(201).json({
       status: true,
-      msg: 'equipo creado con exito',
+      msg: 'Solicitud creada con exito',
       request: requestCreate,
     })
   } catch (error) {
     res.status(500).json({
       status: false,
-      msg: 'Error al crear el equipo: ' + error.message,
+      msg: 'Error al crear la solicitud: ' + error.message,
       request: [],
     })
   }
@@ -43,15 +41,26 @@ const updateRequest = async (req, res) => {
         id: id,
       },
     })
-    res.status(201).json({
+
+    if (requestUpdate[0] === 0) {
+      return res.status(404).json({
+        status: false,
+        msg: 'Solicitud no encontrada o no se realizaron cambios',
+        request: [],
+      })
+    }
+
+    const updatedRequest = await Request.findByPk(id)
+
+    res.status(200).json({
       status: true,
-      msg: 'equipo actualizado con exito',
-      request: requestUpdate,
+      msg: 'Solicitud actualizada con exito',
+      request: updatedRequest,
     })
   } catch (error) {
     res.status(500).json({
       status: false,
-      msg: 'Error al actualizar el equipo: ' + error.message,
+      msg: 'Error al actualizar la solicitud: ' + error.message,
       request: [],
     })
   }
@@ -60,24 +69,24 @@ const updateRequest = async (req, res) => {
 const destroyRequest = async (req, res) => {
   try {
     const { id } = req.params
-    const request = await request.findByPk(id)
+    const request = await Request.findByPk(id)
     if (!request) {
       return res.status(404).json({
         status: false,
-        msg: 'equipo no encontrado',
+        msg: 'Solicitud no encontrada',
         request: [],
       })
     }
     await request.destroy()
     res.status(200).json({
       status: true,
-      msg: 'equipo eliminado con exito',
+      msg: 'Solicitud eliminada con exito',
       request: request,
     })
   } catch (error) {
     res.status(500).json({
       status: false,
-      msg: 'Error al eliminar el equipo: ' + error.message,
+      msg: 'Error al eliminar la solicitud: ' + error.message,
       request: [],
     })
   }

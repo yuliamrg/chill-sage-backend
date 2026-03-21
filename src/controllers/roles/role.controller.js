@@ -1,12 +1,10 @@
 const Role = require('../../models/Roles/Role.model')
-const { Op } = require('sequelize')
-
 const getRoles = async (req, res) => {
   try {
     const roles = await Role.findAll()
     res.status(200).json({
       status: true,
-      msg: 'Obeniendo equipos',
+      msg: 'Obteniendo roles',
       roles: roles,
     })
   } catch (error) {
@@ -23,13 +21,13 @@ const createRole = async (req, res) => {
     const roleCreate = await Role.create(req.body)
     res.status(201).json({
       status: true,
-      msg: 'equipo creado con exito',
+      msg: 'Rol creado con exito',
       role: roleCreate,
     })
   } catch (error) {
     res.status(500).json({
       status: false,
-      msg: 'Error al crear el equipo: ' + error.message,
+      msg: 'Error al crear el rol: ' + error.message,
       role: [],
     })
   }
@@ -43,15 +41,26 @@ const updateRole = async (req, res) => {
         id: id,
       },
     })
-    res.status(201).json({
+
+    if (roleUpdate[0] === 0) {
+      return res.status(404).json({
+        status: false,
+        msg: 'Rol no encontrado o no se realizaron cambios',
+        role: [],
+      })
+    }
+
+    const updatedRole = await Role.findByPk(id)
+
+    res.status(200).json({
       status: true,
-      msg: 'equipo actualizado con exito',
-      role: roleUpdate,
+      msg: 'Rol actualizado con exito',
+      role: updatedRole,
     })
   } catch (error) {
     res.status(500).json({
       status: false,
-      msg: 'Error al actualizar el equipo: ' + error.message,
+      msg: 'Error al actualizar el rol: ' + error.message,
       role: [],
     })
   }
@@ -64,20 +73,20 @@ const destroyRole = async (req, res) => {
     if (!role) {
       return res.status(404).json({
         status: false,
-        msg: 'equipo no encontrado',
+        msg: 'Rol no encontrado',
         role: [],
       })
     }
     await role.destroy()
     res.status(200).json({
       status: true,
-      msg: 'equipo eliminado con exito',
+      msg: 'Rol eliminado con exito',
       role: role,
     })
   } catch (error) {
     res.status(500).json({
       status: false,
-      msg: 'Error al eliminar el equipo: ' + error.message,
+      msg: 'Error al eliminar el rol: ' + error.message,
       role: [],
     })
   }

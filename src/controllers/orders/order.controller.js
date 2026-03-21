@@ -1,12 +1,11 @@
 const Order = require('../../models/Orders/Order.model')
-const { Op } = require('sequelize')
 
 const getOrders = async (req, res) => {
   try {
     const orders = await Order.findAll()
     res.status(200).json({
       status: true,
-      msg: 'Obeniendo ordenes',
+      msg: 'Obteniendo ordenes',
       orders: orders,
     })
   } catch (error) {
@@ -23,13 +22,13 @@ const createOrder = async (req, res) => {
     const orderCreate = await Order.create(req.body)
     res.status(201).json({
       status: true,
-      msg: 'orden creado con exito',
+      msg: 'Orden creada con exito',
       order: orderCreate,
     })
   } catch (error) {
     res.status(500).json({
       status: false,
-      msg: 'Error al crear el orden: ' + error.message,
+      msg: 'Error al crear la orden: ' + error.message,
       order: [],
     })
   }
@@ -43,15 +42,26 @@ const updateOrder = async (req, res) => {
         id: id,
       },
     })
-    res.status(201).json({
+
+    if (orderUpdate[0] === 0) {
+      return res.status(404).json({
+        status: false,
+        msg: 'Orden no encontrada o no se realizaron cambios',
+        order: [],
+      })
+    }
+
+    const updatedOrder = await Order.findByPk(id)
+
+    res.status(200).json({
       status: true,
-      msg: 'orden actualizado con exito',
-      order: orderUpdate,
+      msg: 'Orden actualizada con exito',
+      order: updatedOrder,
     })
   } catch (error) {
     res.status(500).json({
       status: false,
-      msg: 'Error al actualizar el orden: ' + error.message,
+      msg: 'Error al actualizar la orden: ' + error.message,
       order: [],
     })
   }
@@ -64,20 +74,20 @@ const destroyOrder = async (req, res) => {
     if (!order) {
       return res.status(404).json({
         status: false,
-        msg: 'orden no encontrado',
+        msg: 'Orden no encontrada',
         order: [],
       })
     }
     await order.destroy()
     res.status(200).json({
       status: true,
-      msg: 'orden eliminado con exito',
+      msg: 'Orden eliminada con exito',
       order: order,
     })
   } catch (error) {
     res.status(500).json({
       status: false,
-      msg: 'Error al eliminar el orden: ' + error.message,
+      msg: 'Error al eliminar la orden: ' + error.message,
       order: [],
     })
   }
