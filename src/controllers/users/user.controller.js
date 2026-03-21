@@ -1,4 +1,6 @@
 const User = require('../../models/Users/User.model')
+const Client = require('../../models/Clients/Client.model')
+const Role = require('../../models/Roles/Role.model')
 const { Op } = require('sequelize')
 const bcrypt = require('bcrypt')
 
@@ -10,6 +12,25 @@ const sanitizeUser = (user) => {
   const userData = typeof user.toJSON === 'function' ? user.toJSON() : user
   const { password, ...safeUser } = userData
   return safeUser
+}
+
+const enrichUser = async (user) => {
+  const safeUser = sanitizeUser(user)
+
+  if (!safeUser) {
+    return null
+  }
+
+  const [client, role] = await Promise.all([
+    safeUser.client ? Client.findByPk(safeUser.client) : null,
+    safeUser.role ? Role.findByPk(safeUser.role) : null,
+  ])
+
+  return {
+    ...safeUser,
+    client_name: client?.name ?? null,
+    role_name: role?.description ?? null,
+  }
 }
 
 const login = async (req, res) => {
@@ -44,10 +65,11 @@ const login = async (req, res) => {
 const getUsers = async (req, res) => {
   try {
     const users = await User.findAll()
+    const hydratedUsers = await Promise.all(users.map(enrichUser))
     res.status(200).json({
       status: true,
       msg: 'Obteniendo usuarios',
-      users: users.map(sanitizeUser),
+      users: hydratedUsers,
     })
   } catch (error) {
     res.status(500).json({
@@ -74,7 +96,7 @@ const getUserById = async (req, res) => {
     res.status(200).json({
       status: true,
       msg: 'Usuario encontrado',
-      user: sanitizeUser(user),
+      user: await enrichUser(user),
     })
   } catch (error) {
     res.status(500).json({

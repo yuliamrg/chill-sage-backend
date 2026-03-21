@@ -96,6 +96,7 @@ Recursos disponibles:
 Todos estos recursos exponen CRUD basico:
 
 - `GET /api/<resource>`
+- `GET /api/<resource>/:id`
 - `POST /api/<resource>`
 - `PUT /api/<resource>/:id`
 - `DELETE /api/<resource>/:id`
@@ -104,6 +105,17 @@ Excepciones:
 
 - `GET /api/users/:id`
 - `POST /api/users/login`
+
+Recursos con `GET /api/<resource>/:id` confirmado en el codigo actual:
+
+- `users`
+- `clients`
+- `roles`
+- `schedules`
+- `requests`
+- `profiles`
+- `orders`
+- `equipments`
 
 ### Login
 
@@ -122,6 +134,16 @@ Body esperado:
 La busqueda se hace por `email` o `username`.
 
 La respuesta no expone el hash de `password`.
+
+### Respuestas enriquecidas
+
+Algunos endpoints de lectura agregan campos derivados para simplificar el consumo desde frontend:
+
+- `GET /api/users` y `GET /api/users/:id` incluyen `client_name` y `role_name`.
+- `GET /api/equipments` y `GET /api/equipments/:id` incluyen `client_name`.
+- `GET /api/orders` y `GET /api/orders/:id` incluyen `assigned_user_name` y `request_summary`.
+
+Estos campos son informativos. Los ids canonicos siguen siendo `client`, `role`, `user_assigned_id` y `request_id`.
 
 ### Manejo de JSON invalido
 
@@ -148,7 +170,9 @@ Campos definidos por modelo:
 - `email`
 - `password`
 - `client`
+- `client_name`
 - `role`
+- `role_name`
 - `status`
 - `created_at`
 - `updated_at`
@@ -187,6 +211,7 @@ Notas:
 - `code`
 - `alias`
 - `client`
+- `client_name`
 - `description`
 - `status`
 - `use_start_at`
@@ -200,7 +225,9 @@ Notas:
 
 - `id`
 - `user_assigned_id`
+- `assigned_user_name`
 - `request_id`
+- `request_summary`
 - `status`
 - `start_date`
 - `end_date`
@@ -282,6 +309,8 @@ Cambios recientes relevantes:
 
 - `orders` ya usa `user_assigned_id` y `request_id` como nombres canonicos en codigo y base de datos.
 - `bcrypt` fue actualizado a la rama `6.x`, eliminando el warning deprecado que venia por `@mapbox/node-pre-gyp` al arrancar en Node 24.
+- `clients`, `schedules`, `requests`, `orders` y `equipments` ya exponen `GET /api/<resource>/:id`.
+- `users`, `orders` y `equipments` ahora enriquecen algunas respuestas de lectura con nombres o descripciones relacionadas.
 
 La documentacion de uso de este archivo describe el comportamiento actual del codigo. Los pendientes tecnicos vigentes quedaron resumidos en [`REVIEW.md`](/C:/Users/yulia/Documents/projects/chillsage/chillsage-backend/REVIEW.md).
 

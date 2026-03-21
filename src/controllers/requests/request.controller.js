@@ -33,6 +33,33 @@ const createRequest = async (req, res) => {
   }
 }
 
+const getRequestById = async (req, res) => {
+  try {
+    const { id } = req.params
+    const request = await Request.findByPk(id)
+
+    if (!request) {
+      return res.status(404).json({
+        status: false,
+        msg: 'Solicitud no encontrada',
+        request: [],
+      })
+    }
+
+    res.status(200).json({
+      status: true,
+      msg: 'Solicitud encontrada',
+      request,
+    })
+  } catch (error) {
+    res.status(500).json({
+      status: false,
+      msg: 'Error al obtener la solicitud: ' + error.message,
+      request: [],
+    })
+  }
+}
+
 const updateRequest = async (req, res) => {
   const { id } = req.params
   try {
@@ -94,6 +121,7 @@ const destroyRequest = async (req, res) => {
 
 module.exports = {
   getRequests,
+  getRequestById,
   createRequest,
   updateRequest,
   destroyRequest,

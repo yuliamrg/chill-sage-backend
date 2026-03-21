@@ -33,6 +33,33 @@ const createSchedule = async (req, res) => {
   }
 }
 
+const getScheduleById = async (req, res) => {
+  try {
+    const { id } = req.params
+    const schedule = await Schedule.findByPk(id)
+
+    if (!schedule) {
+      return res.status(404).json({
+        status: false,
+        msg: 'Horario no encontrado',
+        schedule: [],
+      })
+    }
+
+    res.status(200).json({
+      status: true,
+      msg: 'Horario encontrado',
+      schedule,
+    })
+  } catch (error) {
+    res.status(500).json({
+      status: false,
+      msg: 'Error al obtener el horario: ' + error.message,
+      schedule: [],
+    })
+  }
+}
+
 const updateSchedule = async (req, res) => {
   const { id } = req.params
   try {
@@ -94,6 +121,7 @@ const destroySchedule = async (req, res) => {
 
 module.exports = {
   getSchedules,
+  getScheduleById,
   createSchedule,
   updateSchedule,
   destroySchedule,

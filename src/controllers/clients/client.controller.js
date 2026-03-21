@@ -33,6 +33,33 @@ const createClient = async (req, res) => {
   }
 }
 
+const getClientById = async (req, res) => {
+  try {
+    const { id } = req.params
+    const client = await Client.findByPk(id)
+
+    if (!client) {
+      return res.status(404).json({
+        status: false,
+        msg: 'Cliente no encontrado',
+        client: [],
+      })
+    }
+
+    res.status(200).json({
+      status: true,
+      msg: 'Cliente encontrado',
+      client,
+    })
+  } catch (error) {
+    res.status(500).json({
+      status: false,
+      msg: 'Error al obtener el cliente: ' + error.message,
+      client: [],
+    })
+  }
+}
+
 const updateClient = async (req, res) => {
   const { id } = req.params
   try {
@@ -94,6 +121,7 @@ const destroyClient = async (req, res) => {
 
 module.exports = {
   getClients,
+  getClientById,
   createClient,
   updateClient,
   destroyClient,
