@@ -1,42 +1,60 @@
 # Chillsage Backend
 
-Backend REST construido con `Express` y `Sequelize` para una base operativa inicial de ChillSage.
+Backend REST construido con `Express` y `Sequelize` para ChillSage.
 
-Este repositorio hoy implementa principalmente CRUD sobre:
-
-- `users`
-- `clients`
-- `roles`
-- `profiles`
-- `equipments`
-- `requests`
-- `orders`
-- `schedules`
-
-El proyecto ya sirve como base técnica estable, pero todavia no implementa por completo el comportamiento funcional descrito para ChillSage como plataforma de mantenimiento trazable.
+El backend ya no es solo una base CRUD. Hoy implementa un flujo operativo real en `requests`, `orders` y `schedules`, mientras que el resto de recursos sigue siendo mayormente CRUD administrativo.
 
 ## Estado Real Del Proyecto
 
-Lo que si existe hoy:
+Lo que existe hoy:
 
 - API REST bajo `/api`
-- conexion a MySQL con Sequelize
-- login por `email` o `username` y `password`
+- login con `email` o `username` y `password`
 - autenticacion JWT Bearer
-- hash de contraseñas con `bcrypt`
-- middleware de autorizacion por rol
-- respuestas JSON consistentes
-- manejo centralizado de errores Sequelize
-- enriquecimiento de algunas respuestas para frontend
+- autorizacion por rol
+- auditoria base con `user_created_id` y `user_updated_id`
+- contrato operativo real para `requests`, `orders` y `schedules`
+- filtros por query en modulos operativos
+- pruebas de integracion con `jest` y `supertest`
 
-Lo que todavia no existe o esta incompleto:
+Lo que aun no existe o sigue incompleto:
 
-- historial tecnico
-- calificacion del servicio
-- flujo de negocio completo `solicitud -> orden -> cierre -> historial`
-- transiciones de estado controladas por dominio
-- paginacion y filtros dedicados por query
-- cobertura automatizada completa
+- refresh token
+- historial tecnico dedicado
+- calificacion del servicio como recurso propio
+- paginacion
+- migraciones versionadas
+- permisos finos por ownership fuera de los modulos operativos ya endurecidos
+
+## Dominio Operativo Implementado
+
+### Requests
+
+`requests` representa la necesidad inicial de servicio.
+
+- nace en `pending`
+- puede aprobarse con `POST /api/requests/:id/approve`
+- puede anularse con `POST /api/requests/:id/cancel`
+- `solicitante` puede crear y consultar dentro de su alcance
+- `planeador` y `admin` pueden revisar y decidir
+
+### Orders
+
+`orders` representa el trabajo tecnico ejecutable derivado de una solicitud aprobada.
+
+- solo se crea desde una `request` en `approved`
+- soporta `assign`, `start`, `complete` y `cancel`
+- el tecnico asignado puede iniciar y completar su orden
+- `DELETE` queda reservado a `admin`
+
+### Schedules
+
+`schedules` representa cronogramas de mantenimiento por cliente y equipos.
+
+- exige `client_id`, `name`, `type`, `scheduled_date` y `equipment_ids`
+- mantiene relacion muchos a muchos con equipos
+- soporta `open` y `close`
+- valida que todos los equipos pertenezcan al mismo cliente
 
 ## Stack
 
@@ -46,16 +64,23 @@ Lo que todavia no existe o esta incompleto:
 - MySQL
 - bcrypt 6
 - jsonwebtoken
+- Jest
+- Supertest
 
 ## Estructura De Codigo
 
 ```text
 index.js
 src/
+  app.js
+  auth/
   controllers/
   models/
   routes/
   utils/
+tests/
+  helpers/
+  integration/
 docs/
   README.md
   CODEX_CONTEXT.md
@@ -67,25 +92,19 @@ docs/
 
 Arquitectura actual:
 
-- `src/app.js` construye la aplicacion Express, configura CORS, parseo JSON, errores y monta la API en `/api`
-- `src/app.js` tambien inicializa base y bootstrap de roles
-- `index.js` arranca el servidor HTTP
-- `src/routes/` agrupa rutas por recurso
-- `src/controllers/` implementa logica CRUD y algunos enriquecimientos
-- `src/models/` define modelos Sequelize
-- `src/utils/` centraliza respuestas y manejo de errores
+- `src/app.js` construye Express, conecta DB, asegura esquema operativo y monta `/api`
+- `src/routes/` separa rutas por recurso
+- `src/controllers/` concentra logica HTTP y reglas de negocio actuales
+- `src/models/` define Sequelize y asociaciones
+- `tests/integration/` valida contrato HTTP y flujos criticos
 
 ## Documentacion
 
-La documentacion ya no vive suelta en raiz. El punto de entrada es:
+Punto de entrada:
 
-- [Mapa de Documentacion](/C:/Users/yulia/Documents/projects/chillsage/chillsage-backend/docs/README.md)
+- [docs/README.md](/C:/Users/yulia/Documents/projects/chillsage/chillsage-backend/docs/README.md)
 
-Si el lector es un agente o alguien que necesita contexto rapido del repo:
-
-- [Contexto Para Codex](/C:/Users/yulia/Documents/projects/chillsage/chillsage-backend/docs/CODEX_CONTEXT.md)
-
-Orden recomendado de lectura:
+Orden recomendado:
 
 1. [docs/CODEX_CONTEXT.md](/C:/Users/yulia/Documents/projects/chillsage/chillsage-backend/docs/CODEX_CONTEXT.md)
 2. [docs/contracts/FRONTEND_API_SERVICES.md](/C:/Users/yulia/Documents/projects/chillsage/chillsage-backend/docs/contracts/FRONTEND_API_SERVICES.md)
@@ -101,21 +120,19 @@ Orden recomendado de lectura:
 
 ## Variables De Entorno
 
-El proyecto usa estas variables:
-
-- `PORT`: puerto HTTP del servidor. Opcional. Default `3000`
+- `PORT`: puerto HTTP del servidor. Default `3000`
 - `DB_NAME`: nombre de la base de datos
 - `DB_USER`: usuario de base de datos
 - `DB_PASSWORD`: contrasena de base de datos
 - `DB_HOSTNAME`: host de MySQL. Default `127.0.0.1`
 - `DB_PORT`: puerto de MySQL. Default `3306`
-- `DB_SYNC`: si vale `true`, ejecuta `db.sync({ force: false })` al iniciar
-- `JWT_SECRET`: secreto usado para firmar tokens
+- `DB_SYNC`: si vale `true`, ejecuta `db.sync({ force: false })`
+- `JWT_SECRET`: secreto para firmar tokens
 - `JWT_EXPIRES_IN`: duracion del access token. Default `8h`
 
-Referencia rapida en [`.env.example`](/C:/Users/yulia/Documents/projects/chillsage/chillsage-backend/.env.example).
+Referencia:
 
-En este entorno local actual se esta usando `PORT=3037`.
+- [`.env.example`](/C:/Users/yulia/Documents/projects/chillsage/chillsage-backend/.env.example)
 
 ## Instalacion
 
@@ -131,14 +148,10 @@ Crea `.env` a partir de `.env.example` antes de iniciar.
 Comportamiento actual:
 
 - valida conexion con `db.authenticate()` antes de abrir el puerto HTTP
-- solo sincroniza modelos si `DB_SYNC=true`
-- asegura el catalogo base de roles `admin`, `solicitante`, `planeador` y `tecnico`
+- sincroniza modelos solo si `DB_SYNC=true`
+- asegura roles base `admin`, `solicitante`, `planeador` y `tecnico`
+- ejecuta bootstrap de esquema operativo para columnas y tabla relacional de cronogramas
 - monta la API bajo `/api`
-
-Uso recomendado:
-
-- en una base existente: iniciar con `DB_SYNC` ausente o en `false`
-- en desarrollo controlado: usar `DB_SYNC=true` solo si realmente necesitas sincronizar tablas desde Sequelize
 
 ## API
 
@@ -148,7 +161,7 @@ Prefijo base:
 /api
 ```
 
-Recursos disponibles hoy:
+Recursos disponibles:
 
 - `/users`
 - `/clients`
@@ -159,61 +172,39 @@ Recursos disponibles hoy:
 - `/orders`
 - `/schedules`
 
-Excepcion adicional:
+Ruta publica adicional:
 
 - `POST /api/users/login`
 
-Todos los recursos anteriores exponen CRUD basico.
-Todos los endpoints bajo `/api` salvo `POST /api/users/login` requieren `Authorization: Bearer <token>`.
-
-Respuesta de login actual:
-
-```json
-{
-  "status": true,
-  "msg": "Inicio de sesion exitoso",
-  "access_token": "<jwt>",
-  "token_type": "Bearer",
-  "expires_in": "8h",
-  "user": {}
-}
-```
-
-Comportamiento de autorizacion actual:
-
-- `401` si falta token, el token es invalido o el usuario autenticado ya no es valido
-- `403` si el rol autenticado no tiene acceso a la ruta
-
-## Contrato Con Frontend
+Todos los endpoints bajo `/api` salvo login requieren `Authorization: Bearer <token>`.
 
 El contrato operativo vigente esta documentado en:
 
 - [docs/contracts/FRONTEND_API_SERVICES.md](/C:/Users/yulia/Documents/projects/chillsage/chillsage-backend/docs/contracts/FRONTEND_API_SERVICES.md)
 
-Regla de trabajo:
+## Testing
 
-- si cambias campos, llaves, endpoints o payloads del backend, actualiza ese documento en el mismo cambio
-- despues refleja el cambio en `../chillsage-frontend`
+La suite actual usa `jest` y `supertest`.
 
-Archivos frontend a revisar cuando cambia el contrato:
+Suites relevantes:
 
-- `src/app/core/models/domain.models.ts`
-- `src/app/core/mappers/domain.mappers.ts`
-- `src/app/core/services/*.service.ts`
-- formularios, listados y detalles del modulo afectado
+- login y autorizacion base
+- `requests.integration`
+- `orders.integration`
+- `schedules.integration`
 
-## Limitaciones Funcionales Actuales
+Ejecucion:
 
-Los documentos de producto describen un objetivo de dominio mas amplio que el codigo actual. Hoy hay desalineaciones importantes:
+```bash
+npm test
+```
 
-- `requests` no representa aun la solicitud operativa completa esperada
-- `orders` no implementa reglas de negocio de cierre o anulacion
-- `schedules` no modela aun cronogramas con cliente, fecha, tipo y equipos asociados
-- la API permite borrado fisico de registros en varios recursos
-- la autorizacion actual es por rol y ruta, no por ownership fino del registro
-- existen tests iniciales con `jest` y `supertest` para login y autorizacion, pero falta ampliar cobertura
+## Regla De Sincronizacion
 
-Por eso este backend debe leerse como base CRUD actual, no como implementacion terminada del producto objetivo.
+Si cambias endpoints, payloads, permisos o campos del backend, actualiza en el mismo cambio:
+
+1. [docs/contracts/FRONTEND_API_SERVICES.md](/C:/Users/yulia/Documents/projects/chillsage/chillsage-backend/docs/contracts/FRONTEND_API_SERVICES.md)
+2. el consumidor en `../chillsage-frontend`
 
 ## Otros Documentos
 

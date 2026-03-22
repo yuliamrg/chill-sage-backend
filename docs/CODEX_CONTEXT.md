@@ -6,77 +6,94 @@ Documento de entrada rapida para agentes trabajando en este repo.
 
 Backend Node.js con `Express` y `Sequelize` para ChillSage.
 
-El codigo actual no implementa todavia todo el dominio objetivo de mantenimiento. Lo que existe hoy es una base CRUD estable sobre usuarios, clientes, equipos, solicitudes simples, ordenes simples, horarios, roles y perfiles.
+El codigo actual implementa un backend mixto:
+
+- CRUD administrativo estable para catalogos y maestros
+- flujo operativo real para `requests`, `orders` y `schedules`
+
+No existe todavia el dominio completo del producto, pero la operacion principal ya no debe leerse como CRUD generico.
 
 ## Fuente De Verdad Por Tema
 
 - producto objetivo: [context/CONTEXTO_PRODUCTO_CHILLSAGE.md](/C:/Users/yulia/Documents/projects/chillsage/chillsage-backend/docs/context/CONTEXTO_PRODUCTO_CHILLSAGE.md)
-- especificacion funcional por modulos: [context/ESPECIFICACION_FUNCIONAL_MODULOS_CHILLSAGE.md](/C:/Users/yulia/Documents/projects/chillsage/chillsage-backend/docs/context/ESPECIFICACION_FUNCIONAL_MODULOS_CHILLSAGE.md)
+- especificacion funcional: [context/ESPECIFICACION_FUNCIONAL_MODULOS_CHILLSAGE.md](/C:/Users/yulia/Documents/projects/chillsage/chillsage-backend/docs/context/ESPECIFICACION_FUNCIONAL_MODULOS_CHILLSAGE.md)
 - contrato backend/frontend real: [contracts/FRONTEND_API_SERVICES.md](/C:/Users/yulia/Documents/projects/chillsage/chillsage-backend/docs/contracts/FRONTEND_API_SERVICES.md)
-- deuda tecnica y brecha actual: [engineering/REVIEW.md](/C:/Users/yulia/Documents/projects/chillsage/chillsage-backend/docs/engineering/REVIEW.md)
+- revision de brechas y riesgos: [engineering/REVIEW.md](/C:/Users/yulia/Documents/projects/chillsage/chillsage-backend/docs/engineering/REVIEW.md)
 - reglas de proceso: [process/GIT_RULES.md](/C:/Users/yulia/Documents/projects/chillsage/chillsage-backend/docs/process/GIT_RULES.md)
 
 ## Como Leer El Proyecto
 
 1. Leer este archivo.
 2. Leer [contracts/FRONTEND_API_SERVICES.md](/C:/Users/yulia/Documents/projects/chillsage/chillsage-backend/docs/contracts/FRONTEND_API_SERVICES.md) para entender la API real.
-3. Leer [engineering/REVIEW.md](/C:/Users/yulia/Documents/projects/chillsage/chillsage-backend/docs/engineering/REVIEW.md) para entender la brecha funcional.
-4. Solo despues usar los documentos de `context/` para orientar nuevos cambios de producto.
+3. Leer [engineering/REVIEW.md](/C:/Users/yulia/Documents/projects/chillsage/chillsage-backend/docs/engineering/REVIEW.md) para entender lo que aun falta.
+4. Solo despues usar `context/` para orientar cambios de producto o cerrar brechas.
 
 ## Arquitectura Real
 
 ```text
 index.js
 src/
+  app.js
+  auth/
   controllers/
   models/
   routes/
   utils/
+tests/
+  helpers/
+  integration/
 ```
 
 Patron dominante actual:
 
 - rutas por recurso
-- controladores CRUD
-- modelos Sequelize sin capa de servicios de dominio
-- algunas respuestas enriquecidas manualmente
+- controladores HTTP con reglas de negocio embebidas
+- modelos Sequelize sin capa formal de dominio o servicios
+- enriquecimientos manuales para frontend
+- tests de integracion HTTP para contrato y permisos
 
 ## Restricciones Reales Del Codigo
 
 - hay autenticacion JWT Bearer
-- hay middleware de autenticacion y autorizacion por rol
+- hay autorizacion por rol en rutas
 - no hay refresh token ni sesion server-side
-- no hay historial tecnico
-- no hay calificaciones
-- no hay paginacion ni filtros por query
-- hay borrado fisico en varios recursos
-- las reglas de estado del producto casi no estan implementadas
+- no hay paginacion
+- no hay historial tecnico ni calificaciones como recursos propios
+- existe borrado fisico, pero en recursos operativos queda restringido a `admin`
 
-Cobertura actual relevante:
+## Estado Operativo Implementado
 
-- `POST /api/users/login` es publico
-- el resto de `/api` requiere `Authorization: Bearer <token>`
-- la matriz de acceso por rol real vive en [contracts/FRONTEND_API_SERVICES.md](/C:/Users/yulia/Documents/projects/chillsage/chillsage-backend/docs/contracts/FRONTEND_API_SERVICES.md)
-- existen tests iniciales de integracion para login y autorizacion
+### Requests
+
+- estados: `pending`, `approved`, `cancelled`
+- filtros por `client_id`, `requester_user_id`, `equipment_id`, `status`, `type`, `date_from`, `date_to`
+- ownership parcial para `solicitante`
+- endpoints de accion: `approve` y `cancel`
+
+### Orders
+
+- estados: `assigned`, `in_progress`, `completed`, `cancelled`
+- solo se crea desde `request` aprobada
+- filtros por `client_id`, `equipment_id`, `assigned_user_id`, `status`, `type`, `date_from`, `date_to`
+- endpoints de accion: `assign`, `start`, `complete`, `cancel`
+- tecnico asignado puede iniciar y completar su propia orden
+
+### Schedules
+
+- estados: `unassigned`, `open`, `closed`
+- filtros por `client_id`, `status`, `type`, `date_from`, `date_to`
+- relacion real `schedule_equipments`
+- endpoints de accion: `open` y `close`
 
 ## Criterio Para Cambios
 
-Si el cambio pide alineacion con producto, no asumas que el backend ya cumple la especificacion.
+Si el cambio toca contrato o comportamiento de negocio:
 
-Primero valida:
-
-- que modulo existe realmente
-- que campos existen en el modelo Sequelize
-- que endpoints existen de verdad
-- que reglas de negocio estan implementadas y cuales no
-
-## Regla De Sincronizacion
-
-Si cambias el contrato HTTP del backend, debes actualizar:
-
-1. [contracts/FRONTEND_API_SERVICES.md](/C:/Users/yulia/Documents/projects/chillsage/chillsage-backend/docs/contracts/FRONTEND_API_SERVICES.md)
-2. el frontend consumidor en `../chillsage-frontend`
+1. valida rutas, controlador y modelo reales
+2. no asumas que el documento de producto ya esta implementado
+3. actualiza [contracts/FRONTEND_API_SERVICES.md](/C:/Users/yulia/Documents/projects/chillsage/chillsage-backend/docs/contracts/FRONTEND_API_SERVICES.md) en el mismo cambio
+4. si hay cambio rompiente, refleja el impacto esperado en frontend
 
 ## Meta Practica
 
-Tomar el backend actual como base tecnica y cerrarle la brecha con el producto objetivo sin documentar como hecho lo que todavia no existe.
+Tomar el backend actual como base tecnica y seguir cerrando la brecha con el producto objetivo sin documentar como pendiente algo ya implementado, ni como hecho algo que aun no existe.

@@ -4,6 +4,8 @@ const cors = require('cors')
 const express = require('express')
 
 const db = require('./models/database/dbconnection')
+const { initializeModelAssociations } = require('./models')
+const { ensureOperationalSchema } = require('./models/database/ensureOperationalSchema')
 const routes = require('./routes/api.routes')
 const { ensureRoles } = require('./auth/bootstrapRoles')
 const { ensureJwtConfig } = require('./auth/jwt')
@@ -39,6 +41,8 @@ const initializeApp = async () => {
   if (!initializationPromise) {
     initializationPromise = (async () => {
       await db.authenticate()
+      initializeModelAssociations()
+      await ensureOperationalSchema()
 
       if (process.env.DB_SYNC === 'true') {
         await db.sync({ force: false })

@@ -2,11 +2,11 @@
 
 Documento operativo para endurecer el backend antes de exponerlo a clientes externos o llevarlo a produccion.
 
-Fecha de referencia: 2026-03-22
+Fecha de referencia: `2026-03-22`
 
 ## Objetivo
 
-Reducir los riesgos mas criticos del proyecto actual sin perder compatibilidad funcional innecesaria.
+Reducir los riesgos mas criticos del proyecto actual sin romper innecesariamente el contrato operativo ya implementado.
 
 ## Estado De Ejecucion
 
@@ -14,8 +14,9 @@ Avance actual sobre este plan:
 
 - autenticacion JWT implementada
 - autorizacion por rol implementada en rutas
-- listas blancas de campos y proteccion basica de auditoria implementadas en recursos criticos
-- pruebas automatizadas iniciales de login y autorizacion implementadas
+- listas blancas de campos y proteccion de auditoria en recursos criticos
+- flujo operativo base implementado en `requests`, `orders` y `schedules`
+- pruebas de integracion de login, autorizacion y modulos operativos implementadas
 
 Pendiente de este plan:
 
@@ -23,247 +24,158 @@ Pendiente de este plan:
 - rate limiting de login
 - CORS restringido por entorno
 - mayor endurecimiento de errores
-- ampliacion de cobertura de pruebas
 - migraciones versionadas
+- ampliacion adicional de cobertura fuera del nucleo operativo
 
 ## Prioridad 0
-
-Estos puntos deben resolverse antes de cualquier despliegue serio.
 
 ### 1. Sacar secretos del repositorio y rotarlos
 
 Problema actual:
 
-- `.env` esta versionado en git.
-- Si hubo credenciales reales en ese archivo, deben tratarse como comprometidas.
+- `.env` no debe tratarse como artefacto compartible.
+- Si hubo credenciales reales versionadas, deben asumirse comprometidas.
 
 Acciones:
 
-1. Rotar usuario, password y cualquier credencial usada por la base de datos actual.
-2. Confirmar que `.env` quede solo local y que el archivo de referencia sea `.env.example`.
-3. Limpiar historial de git si el repositorio va a seguir siendo compartido o publico.
-4. Documentar el procedimiento seguro de configuracion local.
+1. Rotar credenciales de base de datos y cualquier secreto expuesto.
+2. Mantener `.env` solo local y usar `.env.example` como referencia.
+3. Limpiar historial si el repositorio va a circular fuera del equipo actual.
+4. Documentar configuracion segura por entorno.
 
-Resultado esperado:
-
-- Ninguna credencial real presente en el repo.
-- Equipo trabajando con variables locales o secret manager.
-
-### 2. Agregar autenticacion real
+### 2. Endurecer autenticacion
 
 Estado actual:
 
-- resuelto con JWT Bearer
+- resuelto a nivel base con JWT Bearer
 - `POST /api/users/login` devuelve `access_token`, `token_type`, `expires_in` y `user`
 - todo `/api` salvo login exige autenticacion
 
 Acciones:
 
-1. mantener `JWT_SECRET` y `JWT_EXPIRES_IN` como configuracion obligatoria por entorno
+1. mantener `JWT_SECRET` y `JWT_EXPIRES_IN` por entorno
 2. agregar rate limiting a login
-3. evaluar refresh token si el frontend lo necesita en una fase posterior
+3. evaluar refresh token si el frontend lo necesita
 
-Resultado esperado:
-
-- El frontend no podra leer o modificar datos sin autenticarse.
-
-### 3. Agregar autorizacion por rol o permisos
+### 3. Endurecer autorizacion
 
 Estado actual:
 
 - resuelto a nivel base por rol y ruta
-- `admin`, `planeador`, `tecnico` y `solicitante` ya restringen acceso por metodo y recurso
+- hay restricciones operativas adicionales por ownership en `requests` y `orders`
 
 Acciones:
 
-1. mantener actualizada la matriz de acceso por recurso y accion.
-2. endurecer siguientes casos aun pendientes:
-   - gestion de usuarios
-   - eliminaciones
-   - catalogos maestros como roles y perfiles
-   - ownership y alcance por cliente o asignacion
-3. Evitar que un usuario comun cambie su propio `role`, `status` o campos de auditoria.
+1. mantener actualizada la matriz de acceso por recurso y accion
+2. reforzar alcance por cliente en recursos maestros
+3. revisar eliminaciones y operaciones administrativas sensibles
 
-Resultado esperado:
+### 4. Endurecer validacion de payloads
 
-- Cada tipo de usuario solo puede operar sobre lo que le corresponde.
+Estado actual:
 
-### 4. Eliminar mass assignment y validar payloads
-
-Problema actual:
-
-- Los controladores pasan `req.body` directo a Sequelize.
-- El cliente puede inyectar campos sensibles.
+- los recursos operativos ya usan listas blancas y validaciones de dominio
 
 Acciones:
 
-1. Definir DTOs o listas blancas por endpoint.
-2. Aceptar solo los campos esperados en `create` y `update`.
-3. Rechazar campos desconocidos.
-4. Agregar validacion de formatos, requeridos, enums y relaciones.
-5. Validar ids antes de consultar o actualizar.
-
-Resultado esperado:
-
-- El backend solo persiste datos permitidos y con formato consistente.
+1. extender el mismo patron a recursos restantes
+2. rechazar campos desconocidos donde aun no se haga
+3. validar relaciones y enums de forma consistente
+4. consolidar DTOs o helpers de validacion si crece la complejidad
 
 ## Prioridad 1
-
-Estas tareas deben ejecutarse inmediatamente despues de cerrar la Prioridad 0.
 
 ### 5. Endurecer manejo de errores
 
 Problema actual:
 
-- Se devuelve `error.message` al cliente.
+- aun se filtran mensajes internos en algunos controladores
 
 Acciones:
 
-1. Implementar middleware global de errores.
-2. Responder mensajes genericos al cliente.
-3. Registrar detalle tecnico solo en logs del servidor.
-4. Diferenciar errores esperados: validacion, autenticacion, autorizacion, conflicto y fallo interno.
-
-Resultado esperado:
-
-- Menor filtracion de detalles internos y respuestas consistentes.
+1. implementar o fortalecer middleware global de errores
+2. responder mensajes mas controlados al cliente
+3. dejar detalle tecnico en logs
+4. unificar criterios para `400`, `401`, `403`, `404`, `409` y `500`
 
 ### 6. Restringir CORS
 
 Problema actual:
 
-- `cors()` esta abierto a cualquier origen.
+- la configuracion sigue abierta para desarrollo general
 
 Acciones:
 
-1. Definir lista de origins por entorno.
-2. Permitir solo frontend local de desarrollo y dominios aprobados.
-3. Documentar variables de entorno para CORS.
+1. definir lista de origins por entorno
+2. permitir solo frontends aprobados
+3. documentar variables de entorno necesarias
 
-Resultado esperado:
-
-- El backend solo aceptara navegadores desde origenes autorizados.
-
-### 7. Agregar rate limiting y proteccion de login
-
-Problema actual:
-
-- Login sin throttling ni bloqueo progresivo.
+### 7. Mejorar observabilidad
 
 Acciones:
 
-1. Aplicar rate limiting a `/api/users/login`.
-2. Considerar limite global por IP para endpoints sensibles.
-3. Evaluar lock temporal por usuario o IP ante intentos repetidos.
-
-Resultado esperado:
-
-- Menor riesgo de fuerza bruta y abuso.
-
-### 8. Mejorar observabilidad
-
-Acciones:
-
-1. Agregar logger estructurado.
-2. Incorporar request id por peticion.
-3. Registrar errores, tiempo de respuesta y eventos de autenticacion.
-4. Crear endpoint de health check.
-
-Resultado esperado:
-
-- Diagnostico mas rapido en desarrollo y despliegue.
+1. agregar logger estructurado
+2. incorporar request id por peticion
+3. registrar eventos de autenticacion y errores relevantes
+4. crear endpoint de health check
 
 ## Prioridad 2
 
-Mejoras de confiabilidad y mantenimiento.
-
-### 9. Agregar pruebas automatizadas
+### 8. Ampliar pruebas automatizadas
 
 Estado actual:
 
-- existen tests iniciales con `jest` y `supertest`
-- hoy cubren login y autorizacion base
+- existen suites de login, autorizacion y flujos operativos
 
 Acciones:
 
-1. ampliar cobertura a smoke de arranque
-2. cubrir usuarios, clientes, equipos, solicitudes, ordenes y horarios
-3. probar errores de validacion, 404, 401 y 403
-4. agregar pipeline de ejecucion automatica
+1. ampliar cobertura a usuarios, clientes y equipos
+2. agregar mas escenarios negativos de validacion
+3. automatizar ejecucion en CI
 
-Resultado esperado:
-
-- Menor riesgo de regresiones en cambios futuros.
-
-### 10. Formalizar gestion del esquema
+### 9. Formalizar gestion del esquema
 
 Problema actual:
 
-- El proyecto depende del esquema existente y de `DB_SYNC` solo para sincronizacion basica.
+- existe bootstrap de esquema operativo, pero no migraciones versionadas
 
 Acciones:
 
-1. Adoptar migraciones versionadas.
-2. Definir seeders para catalogos basicos.
-3. Eliminar dependencia operativa de cambios manuales de esquema.
+1. adoptar migraciones
+2. definir seeders para catalogos base
+3. reducir dependencia de cambios automaticos al iniciar
 
-Resultado esperado:
-
-- Esquema reproducible entre desarrollo, QA y produccion.
-
-### 11. Estandarizar contratos de respuesta
+### 10. Agregar paginacion y metadatos
 
 Problema actual:
 
-- Hay respuestas con `message`, otras con `msg`, otras con llaves distintas.
+- los listados siguen usando `findAll()` sin limite
 
 Acciones:
 
-1. Definir formato uniforme para exito y error.
-2. Estandarizar nombres de propiedades.
-3. Versionar el contrato si se introduce un cambio rompiente.
+1. agregar `page`, `limit` y `sort`
+2. definir maximo de resultados
+3. devolver metadata de paginacion
 
-Resultado esperado:
+## Orden Recomendado De Ejecucion
 
-- Integracion frontend mas simple y menos codigo defensivo.
+1. secretos y rotacion
+2. rate limiting y endurecimiento de login
+3. manejo de errores
+4. CORS
+5. migraciones
+6. ampliacion de tests
+7. observabilidad
+8. paginacion
 
-### 12. Agregar paginacion y filtros
-
-Problema actual:
-
-- Todos los listados usan `findAll()` sin limite.
-
-Acciones:
-
-1. Agregar `page`, `limit`, `sort` y filtros basicos.
-2. Definir maximo de resultados por consulta.
-3. Devolver metadata de paginacion.
-
-Resultado esperado:
-
-- Mejor rendimiento y mejor experiencia para el frontend.
-
-## Orden recomendado de ejecucion
-
-1. Secretos y rotacion
-2. Rate limiting y endurecimiento de login
-3. Validacion y listas blancas
-4. Manejo de errores
-5. CORS
-6. Tests
-7. Logs y health check
-8. Migraciones
-9. Contratos uniformes
-10. Paginacion
-
-## Criterio minimo para decir "listo para cliente"
+## Criterio Minimo Para Decir "Listo Para Cliente"
 
 Como minimo deberian estar completos:
 
 - secretos fuera del repo
 - autenticacion funcional
-- autorizacion por rol o permiso
-- validacion de payloads
+- autorizacion por rol y alcance suficiente
+- validacion de payloads en todos los recursos criticos
 - errores endurecidos
 - CORS restringido
-- pruebas basicas de login y CRUD critico
+- pruebas basicas de login y de flujos operativos criticos

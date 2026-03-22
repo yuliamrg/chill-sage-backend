@@ -4,68 +4,88 @@ Revision estatica actualizada sobre el estado documental y funcional del proyect
 
 ## Resumen Ejecutivo
 
-El backend esta bien encaminado como base tecnica CRUD, pero todavia no esta alineado con el producto objetivo definido para ChillSage como plataforma de mantenimiento trazable.
+El backend ya no debe considerarse una base CRUD plana. La brecha principal de dominio se redujo en `requests`, `orders` y `schedules`, que hoy implementan flujo operativo, estados, permisos por rol y validaciones de negocio relevantes.
 
-Hoy el proyecto esta mas cerca de:
+La brecha que sigue abierta se concentra en:
 
-- API CRUD estable
-- contrato uniforme para frontend
-- base tecnica evolutiva con autenticacion real
-
-Que de:
-
-- motor de flujo operativo con reglas de dominio
-- plataforma con trazabilidad completa
-- backend con reglas de dominio y permisos finos implementados
+- historial tecnico
+- calificacion del servicio
+- paginacion y versionado de esquema
+- endurecimiento adicional de seguridad y errores
+- permisos mas finos fuera del nucleo operativo
 
 ## Lo Mejor Resuelto Hoy
 
 - arranque controlado del servidor y validacion de conexion a MySQL
-- sincronizacion de modelos solo bajo `DB_SYNC=true`
-- hash de contraseñas con `bcrypt`
-- saneamiento del usuario en login
-- respuestas JSON consistentes
-- manejo centralizado de errores Sequelize
-- algunos payloads enriquecidos para frontend
-- estructura simple y legible por recursos
+- autenticacion JWT Bearer
+- autorizacion por rol en rutas
+- listas blancas de campos y proteccion de auditoria
+- contrato operativo real para `requests`, `orders` y `schedules`
+- filtros por query en modulos operativos
+- restricciones de ownership relevantes para `solicitante` y `tecnico`
+- pruebas de integracion para login, autorizacion y flujo operativo
 
-## Brechas Principales Frente Al Producto Objetivo
+## Estado Del Dominio
 
-### Seguridad y acceso
+### Ya implementado
 
-- hay JWT Bearer para `POST /api/users/login`
-- hay middleware de autenticacion para `/api`
-- hay autorizacion por rol en endpoints
-- aun no hay refresh token
-- aun no hay permisos por ownership o alcance fino de registro
+- `requests` con estados `pending`, `approved`, `cancelled`
+- `orders` con estados `assigned`, `in_progress`, `completed`, `cancelled`
+- `schedules` con estados `unassigned`, `open`, `closed`
+- transiciones de negocio:
+  - aprobar y anular solicitud
+  - asignar, iniciar, completar y cancelar orden
+  - abrir y cerrar cronograma
+- validacion de relaciones:
+  - solicitud ligada a cliente y equipo coherentes
+  - orden creada solo desde solicitud aprobada
+  - una orden activa por solicitud
+  - cronograma con equipos del mismo cliente
 
-### Dominio
+### Aun pendiente
 
-- `requests` no modela la solicitud funcional completa
-- `orders` no modela cierre operativo completo ni satisfaccion
-- `schedules` no modela cronogramas reales con cliente, fecha, tipo y equipos
-- no existen `historial` ni `calificaciones`
+- historial tecnico consolidado por equipo
+- calificaciones como modulo y contrato propio
+- politicas mas finas de acceso por cliente en recursos maestros
+- reemplazar borrado fisico por estrategia mas segura si el dominio lo exige
 
-### Reglas de negocio
+## Seguridad Y Acceso
 
-- casi todo sigue siendo CRUD generico
-- no existen endpoints de transicion de estado
-- no hay validacion del flujo `solicitud -> orden -> cierre`
-- se permite borrado fisico de registros operativos
+Resuelto hoy:
 
-### Operacion y calidad
+- login publico en `POST /api/users/login`
+- autenticacion obligatoria para el resto de `/api`
+- `401` y `403` diferenciados
+- `DELETE` restringido a `admin` en `requests`, `orders` y `schedules`
 
-- no hay filtros avanzados ni paginacion
-- hay pruebas automatizadas iniciales
-- aun falta ampliar cobertura automatizada
+Pendiente:
+
+- refresh token
+- rate limiting en login
+- CORS restringido por entorno
+- endurecimiento adicional del manejo de errores
+
+## Operacion Y Calidad
+
+Resuelto hoy:
+
+- suite con `jest` y `supertest`
+- cobertura de login y autorizacion
+- cobertura de integracion separada por recurso para `requests`, `orders` y `schedules`
+
+Pendiente:
+
+- ampliar cobertura a clientes, equipos y usuarios
+- agregar escenarios de regresion sobre errores de validacion y ownership
+- pipeline automatizado de CI si se busca mayor confiabilidad
 
 ## Recomendacion De Trabajo
 
-Orden sugerido:
+Orden sugerido desde el estado actual:
 
-1. redefinir modelos de `requests`, `orders` y `schedules`
-2. introducir endpoints de negocio y reglas de estado
-3. eliminar borrado fisico en recursos operativos
-4. implementar historial tecnico y calificaciones
-5. ampliar pruebas y filtros operativos
-6. endurecer permisos por ownership, alcance y casos de negocio
+1. implementar `historial tecnico`
+2. implementar `calificacion del servicio`
+3. formalizar migraciones versionadas
+4. endurecer errores, CORS y rate limiting
+5. agregar paginacion y metadatos de listado
+6. extender cobertura automatizada a modulos no operativos

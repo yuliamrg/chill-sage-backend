@@ -8,12 +8,7 @@ Fecha de referencia: `2026-03-22`
 
 Este documento describe la API real implementada hoy.
 
-No describe el producto objetivo completo. Para eso existen:
-
-- [Contexto de producto](/C:/Users/yulia/Documents/projects/chillsage/chillsage-backend/docs/context/CONTEXTO_PRODUCTO_CHILLSAGE.md)
-- [Especificacion funcional](/C:/Users/yulia/Documents/projects/chillsage/chillsage-backend/docs/context/ESPECIFICACION_FUNCIONAL_MODULOS_CHILLSAGE.md)
-
-Si hay diferencia entre esos documentos y este, para integrar frontend debes seguir este archivo.
+Si hay diferencia entre este archivo y los documentos de `docs/context/`, para integrar frontend sobre este backend debes seguir este contrato.
 
 ## Base URL
 
@@ -23,11 +18,7 @@ http://localhost:<PORT>/api
 
 El puerto depende de `PORT` en `.env`. Si no existe, el backend usa `3000`.
 
-En el entorno local actual de este repo el backend se esta ejecutando en `3037`.
-
 ## Recursos Disponibles
-
-La API expone hoy:
 
 - `users`
 - `clients`
@@ -38,34 +29,13 @@ La API expone hoy:
 - `orders`
 - `schedules`
 
-Adicionalmente:
+Ruta publica adicional:
 
 - `POST /users/login`
 
 Todos los demas endpoints requieren:
 
 - header `Authorization: Bearer <access_token>`
-
-## Recursos Que No Existen Todavia
-
-No existen endpoints propios para:
-
-- `auth/refresh`
-- `historial`
-- `calificaciones`
-- `cronogramas-equipos`
-- `usuarios-clientes`
-
-Tampoco existen endpoints de negocio como:
-
-- aprobar solicitud
-- anular solicitud
-- crear orden desde solicitud aprobada
-- iniciar orden
-- cerrar orden
-- cerrar cronograma
-
-Hoy casi todo opera via CRUD generico.
 
 ## Estructura Base De Respuesta
 
@@ -84,8 +54,8 @@ La API responde con esta forma:
 ```json
 {
   "status": true,
-  "msg": "Obteniendo clientes",
-  "clients": []
+  "msg": "Obteniendo solicitudes",
+  "requests": []
 }
 ```
 
@@ -94,61 +64,30 @@ La API responde con esta forma:
 ```json
 {
   "status": true,
-  "msg": "Cliente encontrado",
-  "client": {}
+  "msg": "Orden encontrada",
+  "order": {}
 }
 ```
 
-### Error con item
+### Error tipico
 
 ```json
 {
   "status": false,
-  "msg": "Cliente no encontrado",
-  "client": null
+  "msg": "Solicitud no encontrada",
+  "request": null
 }
 ```
 
 ## Convenciones
 
 - los listados devuelven una llave plural
-- detalle, create, update y delete devuelven una llave singular
-- errores de item devuelven la llave singular en `null`
-- errores de lista devuelven la llave plural en `[]`
-
-## Endpoints Por Recurso
-
-Todos estos recursos exponen:
-
-- `GET /<resource>`
-- `GET /<resource>/:id`
-- `POST /<resource>`
-- `PUT /<resource>/:id`
-- `DELETE /<resource>/:id`
-
-Aplica a:
-
-- `users`
-- `clients`
-- `roles`
-- `profiles`
-- `equipments`
-- `requests`
-- `orders`
-- `schedules`
-
-## Llaves De Payload
-
-| Recurso | Llave listado | Llave item |
-| --- | --- | --- |
-| users | `users` | `user` |
-| clients | `clients` | `client` |
-| roles | `roles` | `role` |
-| profiles | `profiles` | `profile` |
-| equipments | `equipments` | `equipment` |
-| requests | `requests` | `request` |
-| orders | `orders` | `order` |
-| schedules | `schedules` | `schedule` |
+- detalle, create, update, action y delete devuelven una llave singular
+- errores de item suelen devolver la llave singular en `null`
+- errores de lista suelen devolver la llave plural en `[]`
+- conflictos de dominio usan `409`
+- falta de autenticacion usa `401`
+- falta de permiso usa `403`
 
 ## Login
 
@@ -170,9 +109,8 @@ Notas reales:
 
 - devuelve `access_token` JWT Bearer
 - no crea sesion persistente server-side
-- responde `400` si no envias `password` o no envias `email` ni `username`
-- responde `401` cuando el usuario no existe, la contrasena no coincide o el usuario esta inactivo
-- protege el resto de endpoints con middleware de autenticacion
+- responde `400` si falta `password` o faltan `email` y `username`
+- responde `401` si el usuario no existe, esta inactivo o la contrasena no coincide
 - el campo `password` nunca se devuelve
 
 Respuesta actual:
@@ -188,24 +126,6 @@ Respuesta actual:
 }
 ```
 
-Errores relevantes para frontend:
-
-```json
-{
-  "status": false,
-  "msg": "Debes enviar email o username junto con la contrasena",
-  "user": null
-}
-```
-
-```json
-{
-  "status": false,
-  "msg": "Usuario no encontrado",
-  "user": null
-}
-```
-
 ## Autenticacion Y Autorizacion
 
 Comportamiento real:
@@ -215,232 +135,529 @@ Comportamiento real:
 - sin token valido el backend responde `401`
 - con token valido pero sin permiso suficiente responde `403`
 
-Ejemplos reales:
-
-```json
-{
-  "status": false,
-  "msg": "Token de autenticacion requerido"
-}
-```
-
-```json
-{
-  "status": false,
-  "msg": "Token invalido o expirado"
-}
-```
-
-```json
-{
-  "status": false,
-  "msg": "No tienes permisos para realizar esta accion"
-}
-```
-
-## Roles Base Del Sistema
-
-Bootstrap actual al iniciar el backend:
+Roles base actuales:
 
 - `1`: `admin`
 - `2`: `solicitante`
 - `3`: `planeador`
 - `4`: `tecnico`
 
-## Campos Enriquecidos
+## Recursos CRUD Basicos
 
-Algunos recursos agregan campos resueltos por backend para simplificar el frontend.
+Los siguientes recursos siguen expuestos principalmente como CRUD:
 
-### users
+- `users`
+- `clients`
+- `roles`
+- `profiles`
+- `equipments`
+
+Rutas base:
+
+- `GET /<resource>`
+- `GET /<resource>/:id`
+- `POST /<resource>`
+- `PUT /<resource>/:id`
+- `DELETE /<resource>/:id`
+
+## Recursos Operativos
+
+### Requests
+
+`requests` representa la necesidad inicial de servicio.
+
+#### Endpoints
+
+- `GET /requests`
+- `GET /requests/:id`
+- `POST /requests`
+- `PUT /requests/:id`
+- `POST /requests/:id/approve`
+- `POST /requests/:id/cancel`
+- `DELETE /requests/:id`
+
+#### Campos de lectura
+
+- `id`
+- `client_id`
+- `requester_user_id`
+- `equipment_id`
+- `type`
+- `title`
+- `description`
+- `priority`
+- `status`
+- `requested_at`
+- `reviewed_at`
+- `reviewed_by_user_id`
+- `review_notes`
+- `cancel_reason`
+- `created_at`
+- `updated_at`
+- `user_created_id`
+- `user_updated_id`
+- `client_name`
+- `requester_name`
+- `equipment_name`
+- `equipment_code`
+- `order_id`
+- `order_status`
+
+#### Campos permitidos en create
+
+```json
+{
+  "client_id": 1,
+  "requester_user_id": 10,
+  "equipment_id": 22,
+  "type": "corrective",
+  "title": "Falla de compresor",
+  "description": "El equipo no enfria",
+  "priority": "high"
+}
+```
+
+Notas:
+
+- `requester_user_id` es forzado al usuario autenticado si el actor es `solicitante`
+- si no se envia `requester_user_id`, el backend usa el usuario autenticado
+- si no se envia `client_id`, el backend intenta usar el `client` del usuario autenticado
+- `type` default: `corrective`
+- `priority` default: `medium`
+- `status` nace en `pending`
+- `requested_at` lo define backend
+
+#### Campos permitidos en update
+
+- `client_id`
+- `requester_user_id`
+- `equipment_id`
+- `type`
+- `title`
+- `description`
+- `priority`
+
+Restriccion:
+
+- solo `admin` puede editar solicitudes no `pending`
+- `planeador` solo puede editar solicitudes `pending`
+
+#### Estados
+
+- `pending`
+- `approved`
+- `cancelled`
+
+#### Acciones
+
+`POST /requests/:id/approve`
+
+Payload:
+
+```json
+{
+  "review_notes": "Validada para ejecucion"
+}
+```
+
+Efectos:
+
+- cambia `status` a `approved`
+- fija `reviewed_at`
+- fija `reviewed_by_user_id`
+- limpia `cancel_reason`
+
+`POST /requests/:id/cancel`
+
+Payload:
+
+```json
+{
+  "cancel_reason": "Equipo fuera de servicio",
+  "review_notes": "No procede"
+}
+```
+
+Efectos:
+
+- cambia `status` a `cancelled`
+- exige `cancel_reason`
+- solo funciona si la solicitud sigue en `pending`
+- falla si la solicitud ya genero una orden
+
+#### Filtros de listado
+
+- `client_id`
+- `requester_user_id`
+- `equipment_id`
+- `status`
+- `type`
+- `date_from`
+- `date_to`
+
+#### Reglas de acceso
+
+- `GET`: `admin`, `planeador`, `tecnico`, `solicitante`
+- `POST`: `admin`, `planeador`, `solicitante`
+- `PUT`: `admin`, `planeador`
+- `approve` y `cancel`: `admin`, `planeador`
+- `DELETE`: solo `admin`
+
+#### Reglas de negocio
+
+- el equipo debe pertenecer al cliente indicado
+- el solicitante asociado debe existir y estar activo
+- `solicitante` solo puede consultar sus solicitudes o las de su cliente
+
+### Orders
+
+`orders` representa la ejecucion tecnica derivada de una solicitud aprobada.
+
+#### Endpoints
+
+- `GET /orders`
+- `GET /orders/:id`
+- `POST /orders`
+- `PUT /orders/:id`
+- `POST /orders/:id/assign`
+- `POST /orders/:id/start`
+- `POST /orders/:id/complete`
+- `POST /orders/:id/cancel`
+- `DELETE /orders/:id`
+
+#### Campos de lectura
+
+- `id`
+- `request_id`
+- `client_id`
+- `equipment_id`
+- `assigned_user_id`
+- `type`
+- `status`
+- `planned_start_at`
+- `started_at`
+- `finished_at`
+- `diagnosis`
+- `work_description`
+- `closure_notes`
+- `cancel_reason`
+- `received_satisfaction`
+- `worked_hours`
+- `created_at`
+- `updated_at`
+- `user_created_id`
+- `user_updated_id`
+- `assigned_user_name`
+- `request_summary`
+- `request_status`
+- `client_name`
+- `equipment_name`
+- `equipment_code`
+
+#### Campos permitidos en create
+
+```json
+{
+  "request_id": 15,
+  "assigned_user_id": 7,
+  "planned_start_at": "2026-03-22T14:00:00.000Z",
+  "diagnosis": "Pendiente de inspeccion",
+  "closure_notes": null,
+  "received_satisfaction": null
+}
+```
+
+Notas:
+
+- `request_id` es obligatorio
+- la orden hereda `client_id`, `equipment_id` y `type` desde la solicitud
+- si se envia `assigned_user_id`, debe pertenecer a un usuario tecnico activo
+- la orden nace en `assigned`
+
+#### Campos permitidos en update
+
+- `assigned_user_id`
+- `planned_start_at`
+- `diagnosis`
+- `closure_notes`
+- `received_satisfaction`
+
+Restriccion:
+
+- no se puede editar una orden `completed` o `cancelled`
+
+#### Estados
+
+- `assigned`
+- `in_progress`
+- `completed`
+- `cancelled`
+
+#### Acciones
+
+`POST /orders/:id/assign`
+
+Payload:
+
+```json
+{
+  "assigned_user_id": 7,
+  "planned_start_at": "2026-03-22T14:00:00.000Z"
+}
+```
+
+Reglas:
+
+- exige `assigned_user_id`
+- solo permite usuarios tecnicos activos
+- no aplica sobre ordenes `completed` o `cancelled`
+
+`POST /orders/:id/start`
+
+Payload:
+
+```json
+{
+  "started_at": "2026-03-22T14:10:00.000Z"
+}
+```
+
+Reglas:
+
+- solo inicia ordenes `assigned`
+- exige tecnico asignado
+- si el actor es `tecnico`, debe ser el tecnico asignado
+- si no se envia `started_at`, backend usa fecha actual
+
+`POST /orders/:id/complete`
+
+Payload:
+
+```json
+{
+  "finished_at": "2026-03-22T16:30:00.000Z",
+  "worked_hours": 2.3,
+  "work_description": "Se reemplazo capacitor y se estabilizo presion",
+  "closure_notes": "Operacion normalizada",
+  "diagnosis": "Capacitor defectuoso",
+  "received_satisfaction": true
+}
+```
+
+Reglas:
+
+- solo completa ordenes `in_progress`
+- si el actor es `tecnico`, debe ser el tecnico asignado
+- exige `work_description`
+- exige `worked_hours`
+- exige `started_at` existente
+- valida que `finished_at` no sea anterior a `started_at`
+
+`POST /orders/:id/cancel`
+
+Payload:
+
+```json
+{
+  "cancel_reason": "Solicitud duplicada"
+}
+```
+
+Reglas:
+
+- exige `cancel_reason`
+- no permite cancelar una orden `completed`
+
+#### Filtros de listado
+
+- `client_id`
+- `equipment_id`
+- `assigned_user_id`
+- `status`
+- `type`
+- `date_from`
+- `date_to`
+
+#### Reglas de acceso
+
+- `GET`: `admin`, `planeador`, `tecnico`, `solicitante`
+- `POST`, `PUT`, `assign`, `cancel`: `admin`, `planeador`
+- `start`, `complete`: `admin`, `planeador`, `tecnico`
+- `DELETE`: solo `admin`
+
+#### Reglas de negocio
+
+- solo se crea desde una `request` en `approved`
+- una `request` no puede tener mas de una `order` activa
+- `tecnico` solo puede consultar sus ordenes asignadas
+- `solicitante` solo puede consultar ordenes derivadas de sus solicitudes o de su cliente
+
+### Schedules
+
+`schedules` representa cronogramas por cliente y equipos.
+
+#### Endpoints
+
+- `GET /schedules`
+- `GET /schedules/:id`
+- `POST /schedules`
+- `PUT /schedules/:id`
+- `POST /schedules/:id/open`
+- `POST /schedules/:id/close`
+- `DELETE /schedules/:id`
+
+#### Campos de lectura
+
+- `id`
+- `client_id`
+- `name`
+- `type`
+- `scheduled_date`
+- `description`
+- `status`
+- `created_at`
+- `updated_at`
+- `user_created_id`
+- `user_updated_id`
+- `client_name`
+- `equipment_ids`
+- `equipments`
+
+`equipments` se devuelve como arreglo resumido:
+
+```json
+[
+  {
+    "id": 22,
+    "name": "Chiller piso 3",
+    "code": "EQ-003",
+    "status": "active"
+  }
+]
+```
+
+#### Campos permitidos en create
+
+```json
+{
+  "client_id": 1,
+  "name": "Preventivo marzo",
+  "type": "preventive",
+  "scheduled_date": "2026-03-28T00:00:00.000Z",
+  "description": "Mantenimiento mensual",
+  "equipment_ids": [22, 23]
+}
+```
+
+#### Campos permitidos en update
+
+- `client_id`
+- `name`
+- `type`
+- `scheduled_date`
+- `description`
+- `equipment_ids` opcional para reemplazar relaciones
+
+Restriccion:
+
+- no se puede editar un cronograma `closed`
+
+#### Estados
+
+- `unassigned`
+- `open`
+- `closed`
+
+#### Acciones
+
+`POST /schedules/:id/open`
+
+Payload:
+
+```json
+{}
+```
+
+Reglas:
+
+- cambia `status` a `open`
+- no permite reabrir cronogramas `closed`
+
+`POST /schedules/:id/close`
+
+Payload:
+
+```json
+{}
+```
+
+Reglas:
+
+- cambia `status` a `closed`
+- falla si ya estaba cerrado
+
+#### Filtros de listado
+
+- `client_id`
+- `status`
+- `type`
+- `date_from`
+- `date_to`
+
+#### Reglas de acceso
+
+- `GET`: `admin`, `planeador`, `tecnico`
+- `POST`, `PUT`, `open`, `close`: `admin`, `planeador`
+- `DELETE`: solo `admin`
+
+#### Reglas de negocio
+
+- exige `client_id`, `name`, `type`, `scheduled_date` y al menos un equipo
+- todos los equipos deben existir
+- todos los equipos deben pertenecer al mismo cliente
+- no acepta equipos en estado `de_baja`, `retirado` o `retired`
+
+## Campos Enriquecidos En Otros Recursos
+
+### Users
 
 - `client_name`
 - `role_name`
 
-### equipments
+### Equipments
 
 - `client_name`
 
-### orders
+## Llaves De Payload
 
-- `assigned_user_name`
-- `request_summary`
+| Recurso | Llave listado | Llave item |
+| --- | --- | --- |
+| users | `users` | `user` |
+| clients | `clients` | `client` |
+| roles | `roles` | `role` |
+| profiles | `profiles` | `profile` |
+| equipments | `equipments` | `equipment` |
+| requests | `requests` | `request` |
+| orders | `orders` | `order` |
+| schedules | `schedules` | `schedule` |
 
-Estos campos aparecen en lectura y tambien en respuestas de `create`, `update` y `delete` de esos recursos.
+## Matriz Inicial De Acceso
 
-## Campos Reales Por Recurso
+- `admin`: acceso total
+- `planeador`: operacion completa sin `DELETE` en recursos operativos
+- `tecnico`: lectura operativa y ejecucion de sus ordenes asignadas
+- `solicitante`: crear y consultar solicitudes; consultar ordenes dentro de su alcance
 
-### users
+Detalle real:
 
-- `id`
-- `username`
-- `name`
-- `last_name`
-- `email`
-- `password` solo entrada
-- `client`
-- `role`
-- `status`
-- `created_at`
-- `updated_at`
-- `user_created_id`
-- `user_updated_id`
-- `client_name` enriquecido
-- `role_name` enriquecido
-
-Notas:
-
-- `username` y `email` son unicos
-- si no se envia `status`, el backend usa `active`
-- si no se envia `role`, el backend usa `2`
-- `user_created_id` y `user_updated_id` protegidos: salen del usuario autenticado, no del body
-
-### clients
-
-- `id`
-- `name`
-- `address`
-- `phone`
-- `email`
-- `description`
-- `status`
-- `created_at`
-- `updated_at`
-- `user_created_id`
-- `user_updated_id`
-
-Nota:
-
-- `user_created_id` y `user_updated_id` protegidos: salen del usuario autenticado, no del body
-
-### roles
-
-- `id`
-- `description`
-- `created_at`
-- `updated_at`
-- `user_created_id`
-- `user_updated_id`
-
-Nota:
-
-- `user_created_id` y `user_updated_id` protegidos: salen del usuario autenticado, no del body
-
-### profiles
-
-- `id`
-- `description`
-- `created_at`
-- `updated_at`
-- `user_created_id`
-- `user_updated_id`
-
-Nota:
-
-- `user_created_id` y `user_updated_id` protegidos: salen del usuario autenticado, no del body
-
-### equipments
-
-- `id`
-- `name`
-- `type`
-- `location`
-- `brand`
-- `model`
-- `serial`
-- `code`
-- `alias`
-- `client`
-- `description`
-- `status`
-- `use_start_at`
-- `use_end_at`
-- `created_at`
-- `updated_at`
-- `user_created_id`
-- `user_updated_id`
-- `client_name` enriquecido
-
-Nota:
-
-- `user_created_id` y `user_updated_id` protegidos: salen del usuario autenticado, no del body
-
-Notas:
-
-- hoy no existe historial tecnico agregado por equipo
-- hoy no existe endpoint dedicado con relaciones operativas completas
-
-### requests
-
-- `id`
-- `description`
-- `status`
-- `created_at`
-- `updated_at`
-- `user_created_id`
-- `user_updated_id`
-
-Notas:
-
-- si no se envia `status` en create, el backend usa `pending`
-- `user_created_id` y `user_updated_id` protegidos: salen del usuario autenticado, no del body
-
-Notas importantes:
-
-- la solicitud real del producto deberia tener mas campos
-- hoy no hay `type`
-- hoy no hay `id_solicitante`
-- hoy no hay `id_equipo`
-- hoy no hay endpoints de aprobar o anular con reglas de dominio
-
-### orders
-
-- `id`
-- `user_assigned_id`
-- `request_id`
-- `status`
-- `start_date`
-- `end_date`
-- `description`
-- `hours`
-- `created_at`
-- `updated_at`
-- `user_created_id`
-- `user_updated_id`
-- `assigned_user_name` enriquecido
-- `request_summary` enriquecido
-
-Nota:
-
-- `user_created_id` y `user_updated_id` protegidos: salen del usuario autenticado, no del body
-
-Notas importantes:
-
-- hoy no existe `received_satisfaction`
-- hoy no hay endpoint de cierre de orden
-- hoy no hay validacion fuerte del flujo `request -> order`
-
-### schedules
-
-- `id`
-- `name`
-- `description`
-- `status`
-- `created_at`
-- `updated_at`
-- `user_created_id`
-- `user_updated_id`
-
-Nota:
-
-- `user_created_id` y `user_updated_id` protegidos: salen del usuario autenticado, no del body
-
-Notas importantes:
-
-- `schedules` no representa todavia el cronograma funcional completo esperado por producto
-- hoy no hay `client`
-- hoy no hay `date`
-- hoy no hay `type`
-- hoy no hay relacion muchos a muchos con equipos
+- `users`: `GET` para `admin` y `planeador`; escritura solo `admin`
+- `roles`: `GET` para `admin` y `planeador`; escritura solo `admin`
+- `profiles`: `GET` para `admin` y `planeador`; escritura solo `admin`
+- `clients`: lectura `admin`, `planeador`, `tecnico`; escritura `admin`, `planeador`
+- `equipments`: lectura `admin`, `planeador`, `tecnico`; escritura `admin`, `planeador`
+- `requests`: lectura `admin`, `planeador`, `tecnico`, `solicitante`; create `admin`, `planeador`, `solicitante`; update `admin`, `planeador`; approve/cancel `admin`, `planeador`; delete solo `admin`
+- `orders`: lectura `admin`, `planeador`, `tecnico`, `solicitante`; create/update/assign/cancel `admin`, `planeador`; start/complete `admin`, `planeador`, `tecnico`; delete solo `admin`
+- `schedules`: lectura `admin`, `planeador`, `tecnico`; create/update/open/close `admin`, `planeador`; delete solo `admin`
 
 ## Impacto En Frontend
 
@@ -449,7 +666,9 @@ Cuando cambie el contrato del backend, revisa como minimo:
 - `src/app/core/models/domain.models.ts`
 - `src/app/core/mappers/domain.mappers.ts`
 - `src/app/core/services/<resource>.service.ts`
-- componentes de lista, detalle, create y edit del modulo afectado
+- formularios de alta y edicion
+- listados con filtros operativos
+- detalle y acciones de transicion por estado
 
 ## Protocolo De Cambio
 
@@ -458,29 +677,11 @@ Cuando cambie el contrato del backend, revisa como minimo:
 3. Refleja el cambio en `../chillsage-frontend`.
 4. Verifica backend y frontend.
 
-## Matriz Inicial De Acceso
-
-- `admin`: acceso total
-- `planeador`: CRUD en `clients`, `equipments`, `requests`, `orders`, `schedules`; lectura en `users`, `roles`, `profiles`
-- `tecnico`: lectura en `clients`, `equipments`, `requests`, `orders`, `schedules`
-- `solicitante`: `GET` en `requests` y `orders`, `POST` en `requests`
-
-La matriz anterior ya esta implementada en rutas. Referencia real:
-
-- `users`: `GET` para `admin` y `planeador`; escritura solo `admin`
-- `roles`: `GET` para `admin` y `planeador`; escritura solo `admin`
-- `profiles`: `GET` para `admin` y `planeador`; escritura solo `admin`
-- `clients`: lectura `admin`, `planeador`, `tecnico`; escritura `admin`, `planeador`
-- `equipments`: lectura `admin`, `planeador`, `tecnico`; escritura `admin`, `planeador`
-- `requests`: lectura `admin`, `planeador`, `tecnico`, `solicitante`; create `admin`, `planeador`, `solicitante`; update/delete `admin`, `planeador`
-- `orders`: lectura `admin`, `planeador`, `tecnico`, `solicitante`; escritura `admin`, `planeador`
-- `schedules`: lectura `admin`, `planeador`, `tecnico`; escritura `admin`, `planeador`
-
 ## Limitaciones Actuales Del Contrato
 
 - no hay refresh token
 - no hay paginacion
-- no hay filtros por query dedicados
-- no hay endpoints de negocio; predominan CRUDs directos
-- hay borrado fisico de registros
-- hay pruebas automatizadas iniciales con `jest` y `supertest`, pero la cobertura aun es parcial
+- `requests`, `orders` y `schedules` ya tienen filtros y acciones de dominio; otros modulos siguen mayormente CRUD
+- no existe recurso propio para historial tecnico
+- no existe recurso propio para calificacion del servicio
+- sigue existiendo borrado fisico como operacion excepcional reservada a `admin`

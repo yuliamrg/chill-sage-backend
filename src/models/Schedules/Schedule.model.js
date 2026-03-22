@@ -15,6 +15,22 @@ Schedule.init({
     type: DataTypes.STRING,
     allowNull: false,
   },
+  client_id: {
+    type: DataTypes.INTEGER,
+    allowNull: false,
+    references: {
+      model: 'clients',
+      key: 'id',
+    },
+  },
+  type: {
+    type: DataTypes.STRING,
+    allowNull: false,
+  },
+  scheduled_date: {
+    type: DataTypes.DATE,
+    allowNull: false,
+  },
   description: {
     type: DataTypes.STRING,
   },
@@ -52,6 +68,20 @@ Schedule.init({
   timestamps: true,
   createdAt: 'created_at',
   updatedAt: 'updated_at',
+  indexes: [
+    {
+      fields: ['client_id'],
+    },
+    {
+      fields: ['status'],
+    },
+    {
+      fields: ['type'],
+    },
+    {
+      fields: ['scheduled_date'],
+    },
+  ],
 });
 
 module.exports = Schedule

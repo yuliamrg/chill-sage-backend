@@ -12,7 +12,8 @@ Order.init(
       autoIncrement: true,
       allowNull: false,
     },
-    user_assigned_id: {
+    assigned_user_id: {
+      field: 'user_assigned_id',
       type: DataTypes.INTEGER,
       references: {
         model: "users",
@@ -26,20 +27,59 @@ Order.init(
         key: "id",
       },
     },
+    client_id: {
+      type: DataTypes.INTEGER,
+      references: {
+        model: 'clients',
+        key: 'id',
+      },
+    },
+    equipment_id: {
+      type: DataTypes.INTEGER,
+      references: {
+        model: 'equipments',
+        key: 'id',
+      },
+    },
+    type: {
+      type: DataTypes.STRING,
+      allowNull: false,
+      defaultValue: 'corrective',
+    },
     status: {
       type: DataTypes.STRING,
       allowNull: false,
     },
-    start_date: {
+    planned_start_at: {
       type: DataTypes.DATE,
     },
-    end_date: {
+    started_at: {
+      field: 'start_date',
       type: DataTypes.DATE,
     },
-    description: {
+    finished_at: {
+      field: 'end_date',
+      type: DataTypes.DATE,
+    },
+    diagnosis: {
       type: DataTypes.STRING,
     },
-    hours: {
+    work_description: {
+      field: 'description',
+      type: DataTypes.STRING,
+    },
+    closure_notes: {
+      type: DataTypes.STRING,
+    },
+    cancel_reason: {
+      type: DataTypes.STRING,
+    },
+    received_satisfaction: {
+      type: DataTypes.BOOLEAN,
+      allowNull: true,
+    },
+    worked_hours: {
+      field: 'hours',
       type: DataTypes.INTEGER,
     },
     created_at: {
@@ -73,6 +113,23 @@ Order.init(
     timestamps: true,
     createdAt: "created_at",
     updatedAt: "updated_at",
+    indexes: [
+      {
+        fields: ['request_id'],
+      },
+      {
+        fields: ['client_id'],
+      },
+      {
+        fields: ['equipment_id'],
+      },
+      {
+        fields: ['user_assigned_id'],
+      },
+      {
+        fields: ['status'],
+      },
+    ],
   }
 )
 
