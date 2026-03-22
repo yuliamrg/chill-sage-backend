@@ -2,11 +2,29 @@
 
 Documento operativo para endurecer el backend antes de exponerlo a clientes externos o llevarlo a produccion.
 
-Fecha de referencia: 2026-03-20
+Fecha de referencia: 2026-03-22
 
 ## Objetivo
 
 Reducir los riesgos mas criticos del proyecto actual sin perder compatibilidad funcional innecesaria.
+
+## Estado De Ejecucion
+
+Avance actual sobre este plan:
+
+- autenticacion JWT implementada
+- autorizacion por rol implementada en rutas
+- listas blancas de campos y proteccion basica de auditoria implementadas en recursos criticos
+- pruebas automatizadas iniciales de login y autorizacion implementadas
+
+Pendiente de este plan:
+
+- rotacion de secretos y saneamiento de repositorio
+- rate limiting de login
+- CORS restringido por entorno
+- mayor endurecimiento de errores
+- ampliacion de cobertura de pruebas
+- migraciones versionadas
 
 ## Prioridad 0
 
@@ -33,17 +51,17 @@ Resultado esperado:
 
 ### 2. Agregar autenticacion real
 
-Problema actual:
+Estado actual:
 
-- Existe login, pero no genera token ni sesion.
-- Ninguna ruta CRUD exige autenticacion.
+- resuelto con JWT Bearer
+- `POST /api/users/login` devuelve `access_token`, `token_type`, `expires_in` y `user`
+- todo `/api` salvo login exige autenticacion
 
 Acciones:
 
-1. Definir el mecanismo: JWT firmado o sesion server-side.
-2. Hacer que `POST /api/users/login` devuelva un artefacto de autenticacion utilizable.
-3. Crear middleware de autenticacion para proteger `/api/*`.
-4. Permitir excepciones controladas solo para login y, si aplica, bootstrap inicial.
+1. mantener `JWT_SECRET` y `JWT_EXPIRES_IN` como configuracion obligatoria por entorno
+2. agregar rate limiting a login
+3. evaluar refresh token si el frontend lo necesita en una fase posterior
 
 Resultado esperado:
 
@@ -51,20 +69,20 @@ Resultado esperado:
 
 ### 3. Agregar autorizacion por rol o permisos
 
-Problema actual:
+Estado actual:
 
-- Cualquier consumidor puede crear, editar o borrar cualquier recurso.
-- El modelo ya tiene `role`, pero el backend no lo usa para controlar acceso.
+- resuelto a nivel base por rol y ruta
+- `admin`, `planeador`, `tecnico` y `solicitante` ya restringen acceso por metodo y recurso
 
 Acciones:
 
-1. Definir permisos por recurso y accion.
-2. Implementar middleware como `requireRole(...)` o `requirePermission(...)`.
-3. Restringir especialmente:
+1. mantener actualizada la matriz de acceso por recurso y accion.
+2. endurecer siguientes casos aun pendientes:
    - gestion de usuarios
    - eliminaciones
    - catalogos maestros como roles y perfiles
-4. Evitar que un usuario comun cambie su propio `role`, `status` o campos de auditoria.
+   - ownership y alcance por cliente o asignacion
+3. Evitar que un usuario comun cambie su propio `role`, `status` o campos de auditoria.
 
 Resultado esperado:
 
@@ -161,16 +179,17 @@ Mejoras de confiabilidad y mantenimiento.
 
 ### 9. Agregar pruebas automatizadas
 
-Problema actual:
+Estado actual:
 
-- No existen tests.
+- existen tests iniciales con `jest` y `supertest`
+- hoy cubren login y autorizacion base
 
 Acciones:
 
-1. Crear pruebas de smoke para arranque.
-2. Cubrir login, usuarios, clientes, equipos y ordenes.
-3. Probar errores de validacion, 404, 401 y 403.
-4. Agregar pipeline de ejecucion automatica.
+1. ampliar cobertura a smoke de arranque
+2. cubrir usuarios, clientes, equipos, solicitudes, ordenes y horarios
+3. probar errores de validacion, 404, 401 y 403
+4. agregar pipeline de ejecucion automatica
 
 Resultado esperado:
 
@@ -227,17 +246,15 @@ Resultado esperado:
 ## Orden recomendado de ejecucion
 
 1. Secretos y rotacion
-2. Autenticacion
-3. Autorizacion
-4. Validacion y listas blancas
-5. Manejo de errores
-6. CORS
-7. Rate limiting
-8. Tests
-9. Logs y health check
-10. Migraciones
-11. Contratos uniformes
-12. Paginacion
+2. Rate limiting y endurecimiento de login
+3. Validacion y listas blancas
+4. Manejo de errores
+5. CORS
+6. Tests
+7. Logs y health check
+8. Migraciones
+9. Contratos uniformes
+10. Paginacion
 
 ## Criterio minimo para decir "listo para cliente"
 

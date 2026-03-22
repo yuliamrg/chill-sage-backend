@@ -10,13 +10,13 @@ Hoy el proyecto esta mas cerca de:
 
 - API CRUD estable
 - contrato uniforme para frontend
-- base tecnica evolutiva
+- base tecnica evolutiva con autenticacion real
 
 Que de:
 
 - motor de flujo operativo con reglas de dominio
 - plataforma con trazabilidad completa
-- backend con seguridad y permisos implementados
+- backend con reglas de dominio y permisos finos implementados
 
 ## Lo Mejor Resuelto Hoy
 
@@ -33,9 +33,11 @@ Que de:
 
 ### Seguridad y acceso
 
-- no hay JWT ni sesion
-- no hay middleware de autenticacion
-- no hay autorizacion por rol en endpoints
+- hay JWT Bearer para `POST /api/users/login`
+- hay middleware de autenticacion para `/api`
+- hay autorizacion por rol en endpoints
+- aun no hay refresh token
+- aun no hay permisos por ownership o alcance fino de registro
 
 ### Dominio
 
@@ -54,15 +56,16 @@ Que de:
 ### Operacion y calidad
 
 - no hay filtros avanzados ni paginacion
-- no hay pruebas automatizadas
+- hay pruebas automatizadas iniciales
+- aun falta ampliar cobertura automatizada
 
 ## Recomendacion De Trabajo
 
 Orden sugerido:
 
-1. autenticacion y autorizacion reales
-2. redefinir modelos de `requests`, `orders` y `schedules`
-3. introducir endpoints de negocio y reglas de estado
-4. eliminar borrado fisico en recursos operativos
-5. implementar historial tecnico y calificaciones
-6. agregar pruebas y filtros operativos
+1. redefinir modelos de `requests`, `orders` y `schedules`
+2. introducir endpoints de negocio y reglas de estado
+3. eliminar borrado fisico en recursos operativos
+4. implementar historial tecnico y calificaciones
+5. ampliar pruebas y filtros operativos
+6. endurecer permisos por ownership, alcance y casos de negocio

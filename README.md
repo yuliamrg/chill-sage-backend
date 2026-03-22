@@ -36,7 +36,7 @@ Lo que todavia no existe o esta incompleto:
 - flujo de negocio completo `solicitud -> orden -> cierre -> historial`
 - transiciones de estado controladas por dominio
 - paginacion y filtros dedicados por query
-- pruebas automatizadas
+- cobertura automatizada completa
 
 ## Stack
 
@@ -67,7 +67,9 @@ docs/
 
 Arquitectura actual:
 
-- `index.js` inicializa Express, CORS, parseo JSON y monta la API en `/api`
+- `src/app.js` construye la aplicacion Express, configura CORS, parseo JSON, errores y monta la API en `/api`
+- `src/app.js` tambien inicializa base y bootstrap de roles
+- `index.js` arranca el servidor HTTP
 - `src/routes/` agrupa rutas por recurso
 - `src/controllers/` implementa logica CRUD y algunos enriquecimientos
 - `src/models/` define modelos Sequelize
@@ -112,6 +114,8 @@ El proyecto usa estas variables:
 - `JWT_EXPIRES_IN`: duracion del access token. Default `8h`
 
 Referencia rapida en [`.env.example`](/C:/Users/yulia/Documents/projects/chillsage/chillsage-backend/.env.example).
+
+En este entorno local actual se esta usando `PORT=3037`.
 
 ## Instalacion
 
@@ -162,6 +166,24 @@ Excepcion adicional:
 Todos los recursos anteriores exponen CRUD basico.
 Todos los endpoints bajo `/api` salvo `POST /api/users/login` requieren `Authorization: Bearer <token>`.
 
+Respuesta de login actual:
+
+```json
+{
+  "status": true,
+  "msg": "Inicio de sesion exitoso",
+  "access_token": "<jwt>",
+  "token_type": "Bearer",
+  "expires_in": "8h",
+  "user": {}
+}
+```
+
+Comportamiento de autorizacion actual:
+
+- `401` si falta token, el token es invalido o el usuario autenticado ya no es valido
+- `403` si el rol autenticado no tiene acceso a la ruta
+
 ## Contrato Con Frontend
 
 El contrato operativo vigente esta documentado en:
@@ -189,6 +211,7 @@ Los documentos de producto describen un objetivo de dominio mas amplio que el co
 - `schedules` no modela aun cronogramas con cliente, fecha, tipo y equipos asociados
 - la API permite borrado fisico de registros en varios recursos
 - la autorizacion actual es por rol y ruta, no por ownership fino del registro
+- existen tests iniciales con `jest` y `supertest` para login y autorizacion, pero falta ampliar cobertura
 
 Por eso este backend debe leerse como base CRUD actual, no como implementacion terminada del producto objetivo.
 

@@ -43,13 +43,21 @@ Patron dominante actual:
 
 ## Restricciones Reales Del Codigo
 
-- no hay JWT ni sesiones
-- no hay middleware de autenticacion o autorizacion
+- hay autenticacion JWT Bearer
+- hay middleware de autenticacion y autorizacion por rol
+- no hay refresh token ni sesion server-side
 - no hay historial tecnico
 - no hay calificaciones
 - no hay paginacion ni filtros por query
 - hay borrado fisico en varios recursos
 - las reglas de estado del producto casi no estan implementadas
+
+Cobertura actual relevante:
+
+- `POST /api/users/login` es publico
+- el resto de `/api` requiere `Authorization: Bearer <token>`
+- la matriz de acceso por rol real vive en [contracts/FRONTEND_API_SERVICES.md](/C:/Users/yulia/Documents/projects/chillsage/chillsage-backend/docs/contracts/FRONTEND_API_SERVICES.md)
+- existen tests iniciales de integracion para login y autorizacion
 
 ## Criterio Para Cambios
 

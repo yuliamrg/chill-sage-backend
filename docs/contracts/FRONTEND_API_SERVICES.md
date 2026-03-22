@@ -23,6 +23,8 @@ http://localhost:<PORT>/api
 
 El puerto depende de `PORT` en `.env`. Si no existe, el backend usa `3000`.
 
+En el entorno local actual de este repo el backend se esta ejecutando en `3037`.
+
 ## Recursos Disponibles
 
 La API expone hoy:
@@ -168,6 +170,7 @@ Notas reales:
 
 - devuelve `access_token` JWT Bearer
 - no crea sesion persistente server-side
+- responde `400` si no envias `password` o no envias `email` ni `username`
 - responde `401` cuando el usuario no existe, la contrasena no coincide o el usuario esta inactivo
 - protege el resto de endpoints con middleware de autenticacion
 - el campo `password` nunca se devuelve
@@ -182,6 +185,56 @@ Respuesta actual:
   "token_type": "Bearer",
   "expires_in": "8h",
   "user": {}
+}
+```
+
+Errores relevantes para frontend:
+
+```json
+{
+  "status": false,
+  "msg": "Debes enviar email o username junto con la contrasena",
+  "user": null
+}
+```
+
+```json
+{
+  "status": false,
+  "msg": "Usuario no encontrado",
+  "user": null
+}
+```
+
+## Autenticacion Y Autorizacion
+
+Comportamiento real:
+
+- `POST /users/login` es publico
+- todo el resto de rutas bajo `/api` requiere token Bearer
+- sin token valido el backend responde `401`
+- con token valido pero sin permiso suficiente responde `403`
+
+Ejemplos reales:
+
+```json
+{
+  "status": false,
+  "msg": "Token de autenticacion requerido"
+}
+```
+
+```json
+{
+  "status": false,
+  "msg": "Token invalido o expirado"
+}
+```
+
+```json
+{
+  "status": false,
+  "msg": "No tienes permisos para realizar esta accion"
 }
 ```
 
@@ -412,6 +465,17 @@ Cuando cambie el contrato del backend, revisa como minimo:
 - `tecnico`: lectura en `clients`, `equipments`, `requests`, `orders`, `schedules`
 - `solicitante`: `GET` en `requests` y `orders`, `POST` en `requests`
 
+La matriz anterior ya esta implementada en rutas. Referencia real:
+
+- `users`: `GET` para `admin` y `planeador`; escritura solo `admin`
+- `roles`: `GET` para `admin` y `planeador`; escritura solo `admin`
+- `profiles`: `GET` para `admin` y `planeador`; escritura solo `admin`
+- `clients`: lectura `admin`, `planeador`, `tecnico`; escritura `admin`, `planeador`
+- `equipments`: lectura `admin`, `planeador`, `tecnico`; escritura `admin`, `planeador`
+- `requests`: lectura `admin`, `planeador`, `tecnico`, `solicitante`; create `admin`, `planeador`, `solicitante`; update/delete `admin`, `planeador`
+- `orders`: lectura `admin`, `planeador`, `tecnico`, `solicitante`; escritura `admin`, `planeador`
+- `schedules`: lectura `admin`, `planeador`, `tecnico`; escritura `admin`, `planeador`
+
 ## Limitaciones Actuales Del Contrato
 
 - no hay refresh token
@@ -419,4 +483,4 @@ Cuando cambie el contrato del backend, revisa como minimo:
 - no hay filtros por query dedicados
 - no hay endpoints de negocio; predominan CRUDs directos
 - hay borrado fisico de registros
-- no hay pruebas automatizadas del backend
+- hay pruebas automatizadas iniciales con `jest` y `supertest`, pero la cobertura aun es parcial
