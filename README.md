@@ -22,15 +22,15 @@ Lo que si existe hoy:
 - API REST bajo `/api`
 - conexion a MySQL con Sequelize
 - login por `email` o `username` y `password`
+- autenticacion JWT Bearer
 - hash de contraseñas con `bcrypt`
+- middleware de autorizacion por rol
 - respuestas JSON consistentes
 - manejo centralizado de errores Sequelize
 - enriquecimiento de algunas respuestas para frontend
 
 Lo que todavia no existe o esta incompleto:
 
-- autenticacion basada en token o sesion
-- middleware de autorizacion por rol
 - historial tecnico
 - calificacion del servicio
 - flujo de negocio completo `solicitud -> orden -> cierre -> historial`
@@ -45,6 +45,7 @@ Lo que todavia no existe o esta incompleto:
 - Sequelize 6
 - MySQL
 - bcrypt 6
+- jsonwebtoken
 
 ## Estructura De Codigo
 
@@ -107,6 +108,8 @@ El proyecto usa estas variables:
 - `DB_HOSTNAME`: host de MySQL. Default `127.0.0.1`
 - `DB_PORT`: puerto de MySQL. Default `3306`
 - `DB_SYNC`: si vale `true`, ejecuta `db.sync({ force: false })` al iniciar
+- `JWT_SECRET`: secreto usado para firmar tokens
+- `JWT_EXPIRES_IN`: duracion del access token. Default `8h`
 
 Referencia rapida en [`.env.example`](/C:/Users/yulia/Documents/projects/chillsage/chillsage-backend/.env.example).
 
@@ -125,6 +128,7 @@ Comportamiento actual:
 
 - valida conexion con `db.authenticate()` antes de abrir el puerto HTTP
 - solo sincroniza modelos si `DB_SYNC=true`
+- asegura el catalogo base de roles `admin`, `solicitante`, `planeador` y `tecnico`
 - monta la API bajo `/api`
 
 Uso recomendado:
@@ -156,6 +160,7 @@ Excepcion adicional:
 - `POST /api/users/login`
 
 Todos los recursos anteriores exponen CRUD basico.
+Todos los endpoints bajo `/api` salvo `POST /api/users/login` requieren `Authorization: Bearer <token>`.
 
 ## Contrato Con Frontend
 
@@ -183,7 +188,7 @@ Los documentos de producto describen un objetivo de dominio mas amplio que el co
 - `orders` no implementa reglas de negocio de cierre o anulacion
 - `schedules` no modela aun cronogramas con cliente, fecha, tipo y equipos asociados
 - la API permite borrado fisico de registros en varios recursos
-- no hay restriccion de acceso por rol en endpoints
+- la autorizacion actual es por rol y ruta, no por ownership fino del registro
 
 Por eso este backend debe leerse como base CRUD actual, no como implementacion terminada del producto objetivo.
 

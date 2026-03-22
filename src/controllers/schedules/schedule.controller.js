@@ -1,6 +1,9 @@
 const Schedule = require('../../models/Schedules/Schedule.model')
 const { success, failure } = require('../../utils/apiResponse')
 const { handleRequestError } = require('../../utils/requestError')
+const { pickAllowedFields, withCreateAudit, withUpdateAudit } = require('../../utils/payload')
+
+const SCHEDULE_FIELDS = ['name', 'description', 'status']
 const getSchedules = async (req, res) => {
   try {
     const schedules = await Schedule.findAll()
@@ -16,7 +19,7 @@ const getSchedules = async (req, res) => {
 
 const createSchedule = async (req, res) => {
   try {
-    const scheduleCreate = await Schedule.create(req.body)
+    const scheduleCreate = await Schedule.create(withCreateAudit(pickAllowedFields(req.body, SCHEDULE_FIELDS), req.auth))
     return success(res, 201, 'Horario creado con exito', {
       schedule: scheduleCreate,
     })
@@ -54,7 +57,7 @@ const getScheduleById = async (req, res) => {
 const updateSchedule = async (req, res) => {
   const { id } = req.params
   try {
-    const scheduleUpdate = await Schedule.update(req.body, {
+    const scheduleUpdate = await Schedule.update(withUpdateAudit(pickAllowedFields(req.body, SCHEDULE_FIELDS), req.auth), {
       where: {
         id: id,
       },

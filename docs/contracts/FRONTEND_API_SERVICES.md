@@ -40,11 +40,15 @@ Adicionalmente:
 
 - `POST /users/login`
 
+Todos los demas endpoints requieren:
+
+- header `Authorization: Bearer <access_token>`
+
 ## Recursos Que No Existen Todavia
 
 No existen endpoints propios para:
 
-- `auth` con token o refresh token
+- `auth/refresh`
 - `historial`
 - `calificaciones`
 - `cronogramas-equipos`
@@ -162,11 +166,33 @@ Payload permitido:
 
 Notas reales:
 
-- no devuelve token
-- no crea sesion persistente
-- responde `401` cuando el usuario no existe o la contrasena no coincide
-- no hay middleware posterior que proteja el resto de endpoints
+- devuelve `access_token` JWT Bearer
+- no crea sesion persistente server-side
+- responde `401` cuando el usuario no existe, la contrasena no coincide o el usuario esta inactivo
+- protege el resto de endpoints con middleware de autenticacion
 - el campo `password` nunca se devuelve
+
+Respuesta actual:
+
+```json
+{
+  "status": true,
+  "msg": "Inicio de sesion exitoso",
+  "access_token": "<jwt>",
+  "token_type": "Bearer",
+  "expires_in": "8h",
+  "user": {}
+}
+```
+
+## Roles Base Del Sistema
+
+Bootstrap actual al iniciar el backend:
+
+- `1`: `admin`
+- `2`: `solicitante`
+- `3`: `planeador`
+- `4`: `tecnico`
 
 ## Campos Enriquecidos
 
@@ -213,6 +239,7 @@ Notas:
 - `username` y `email` son unicos
 - si no se envia `status`, el backend usa `active`
 - si no se envia `role`, el backend usa `2`
+- `user_created_id` y `user_updated_id` protegidos: salen del usuario autenticado, no del body
 
 ### clients
 
@@ -228,6 +255,10 @@ Notas:
 - `user_created_id`
 - `user_updated_id`
 
+Nota:
+
+- `user_created_id` y `user_updated_id` protegidos: salen del usuario autenticado, no del body
+
 ### roles
 
 - `id`
@@ -237,6 +268,10 @@ Notas:
 - `user_created_id`
 - `user_updated_id`
 
+Nota:
+
+- `user_created_id` y `user_updated_id` protegidos: salen del usuario autenticado, no del body
+
 ### profiles
 
 - `id`
@@ -245,6 +280,10 @@ Notas:
 - `updated_at`
 - `user_created_id`
 - `user_updated_id`
+
+Nota:
+
+- `user_created_id` y `user_updated_id` protegidos: salen del usuario autenticado, no del body
 
 ### equipments
 
@@ -268,6 +307,10 @@ Notas:
 - `user_updated_id`
 - `client_name` enriquecido
 
+Nota:
+
+- `user_created_id` y `user_updated_id` protegidos: salen del usuario autenticado, no del body
+
 Notas:
 
 - hoy no existe historial tecnico agregado por equipo
@@ -282,6 +325,11 @@ Notas:
 - `updated_at`
 - `user_created_id`
 - `user_updated_id`
+
+Notas:
+
+- si no se envia `status` en create, el backend usa `pending`
+- `user_created_id` y `user_updated_id` protegidos: salen del usuario autenticado, no del body
 
 Notas importantes:
 
@@ -308,6 +356,10 @@ Notas importantes:
 - `assigned_user_name` enriquecido
 - `request_summary` enriquecido
 
+Nota:
+
+- `user_created_id` y `user_updated_id` protegidos: salen del usuario autenticado, no del body
+
 Notas importantes:
 
 - hoy no existe `received_satisfaction`
@@ -324,6 +376,10 @@ Notas importantes:
 - `updated_at`
 - `user_created_id`
 - `user_updated_id`
+
+Nota:
+
+- `user_created_id` y `user_updated_id` protegidos: salen del usuario autenticado, no del body
 
 Notas importantes:
 
@@ -349,10 +405,16 @@ Cuando cambie el contrato del backend, revisa como minimo:
 3. Refleja el cambio en `../chillsage-frontend`.
 4. Verifica backend y frontend.
 
+## Matriz Inicial De Acceso
+
+- `admin`: acceso total
+- `planeador`: CRUD en `clients`, `equipments`, `requests`, `orders`, `schedules`; lectura en `users`, `roles`, `profiles`
+- `tecnico`: lectura en `clients`, `equipments`, `requests`, `orders`, `schedules`
+- `solicitante`: `GET` en `requests` y `orders`, `POST` en `requests`
+
 ## Limitaciones Actuales Del Contrato
 
-- no hay autenticacion basada en token
-- no hay middleware de permisos por rol
+- no hay refresh token
 - no hay paginacion
 - no hay filtros por query dedicados
 - no hay endpoints de negocio; predominan CRUDs directos

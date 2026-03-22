@@ -2,6 +2,9 @@ const Equipment = require('../../models/Equipments/Equipment.model')
 const Client = require('../../models/Clients/Client.model')
 const { success, failure } = require('../../utils/apiResponse')
 const { handleRequestError } = require('../../utils/requestError')
+const { pickAllowedFields, withCreateAudit, withUpdateAudit } = require('../../utils/payload')
+
+const EQUIPMENT_FIELDS = ['name', 'type', 'location', 'brand', 'model', 'serial', 'code', 'alias', 'client', 'description', 'status', 'use_start_at', 'use_end_at']
 
 const enrichEquipment = async (equipment) => {
   if (!equipment) {
@@ -52,7 +55,7 @@ const getEquipmentById = async (req, res) => {
 
 const createEquipment = async (req, res) => {
   try {
-    const equipmentCreate = await Equipment.create(req.body)
+    const equipmentCreate = await Equipment.create(withCreateAudit(pickAllowedFields(req.body, EQUIPMENT_FIELDS), req.auth))
     return success(res, 201, 'Equipo creado con exito', {
       equipment: await enrichEquipment(equipmentCreate),
     })
@@ -71,7 +74,7 @@ const createEquipment = async (req, res) => {
 const updateEquipment = async (req, res) => {
   const { id } = req.params
   try {
-    const equipmentUpdate = await Equipment.update(req.body, {
+    const equipmentUpdate = await Equipment.update(withUpdateAudit(pickAllowedFields(req.body, EQUIPMENT_FIELDS), req.auth), {
       where: {
         id: id,
       },

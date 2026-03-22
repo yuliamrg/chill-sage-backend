@@ -1,6 +1,9 @@
 const Client = require('../../models/Clients/Client.model')
 const { success, failure } = require('../../utils/apiResponse')
 const { handleRequestError } = require('../../utils/requestError')
+const { pickAllowedFields, withCreateAudit, withUpdateAudit } = require('../../utils/payload')
+
+const CLIENT_FIELDS = ['name', 'address', 'phone', 'email', 'description', 'status']
 const getClients = async (req, res) => {
   try {
     const clients = await Client.findAll()
@@ -16,7 +19,7 @@ const getClients = async (req, res) => {
 
 const createClient = async (req, res) => {
   try {
-    const clientCreate = await Client.create(req.body)
+    const clientCreate = await Client.create(withCreateAudit(pickAllowedFields(req.body, CLIENT_FIELDS), req.auth))
     return success(res, 201, 'Cliente creado con exito', {
       client: clientCreate,
     })
@@ -54,7 +57,7 @@ const getClientById = async (req, res) => {
 const updateClient = async (req, res) => {
   const { id } = req.params
   try {
-    const clientUpdate = await Client.update(req.body, {
+    const clientUpdate = await Client.update(withUpdateAudit(pickAllowedFields(req.body, CLIENT_FIELDS), req.auth), {
       where: {
         id: id,
       },

@@ -1,5 +1,9 @@
 const Role = require('../../models/Roles/Role.model')
 const { success, failure } = require('../../utils/apiResponse')
+const { handleRequestError } = require('../../utils/requestError')
+const { pickAllowedFields, withCreateAudit, withUpdateAudit } = require('../../utils/payload')
+
+const ROLE_FIELDS = ['description']
 const getRoles = async (req, res) => {
   try {
     const roles = await Role.findAll()
@@ -32,13 +36,18 @@ const getRoleById = async (req, res) => {
 
 const createRole = async (req, res) => {
   try {
-    const roleCreate = await Role.create(req.body)
+    const roleCreate = await Role.create(withCreateAudit(pickAllowedFields(req.body, ROLE_FIELDS), req.auth))
     return success(res, 201, 'Rol creado con exito', {
       role: roleCreate,
     })
   } catch (error) {
-    return failure(res, 500, 'Error al crear el rol: ' + error.message, {
-      role: null,
+    return handleRequestError({
+      context: 'roles.create',
+      req,
+      res,
+      error,
+      fallbackMessage: 'Error al crear el rol: ',
+      payloadKey: 'role',
     })
   }
 }
@@ -46,7 +55,7 @@ const createRole = async (req, res) => {
 const updateRole = async (req, res) => {
   const { id } = req.params
   try {
-    const roleUpdate = await Role.update(req.body, {
+    const roleUpdate = await Role.update(withUpdateAudit(pickAllowedFields(req.body, ROLE_FIELDS), req.auth), {
       where: {
         id: id,
       },
@@ -62,8 +71,13 @@ const updateRole = async (req, res) => {
       role: updatedRole,
     })
   } catch (error) {
-    return failure(res, 500, 'Error al actualizar el rol: ' + error.message, {
-      role: null,
+    return handleRequestError({
+      context: 'roles.update',
+      req,
+      res,
+      error,
+      fallbackMessage: 'Error al actualizar el rol: ',
+      payloadKey: 'role',
     })
   }
 }

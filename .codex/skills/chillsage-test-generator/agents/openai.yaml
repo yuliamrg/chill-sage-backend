@@ -1,0 +1,4 @@
+interface:
+  display_name: "Chillsage Test Generator"
+  short_description: "Genera tests para backend Chillsage"
+  default_prompt: "Use $chillsage-test-generator at ./.codex/skills/chillsage-test-generator to add integration tests for an endpoint in this backend."

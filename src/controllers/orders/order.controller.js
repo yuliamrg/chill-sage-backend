@@ -3,6 +3,9 @@ const User = require('../../models/Users/User.model')
 const Request = require('../../models/Requests/request.model')
 const { success, failure } = require('../../utils/apiResponse')
 const { handleRequestError } = require('../../utils/requestError')
+const { pickAllowedFields, withCreateAudit, withUpdateAudit } = require('../../utils/payload')
+
+const ORDER_FIELDS = ['user_assigned_id', 'request_id', 'status', 'start_date', 'end_date', 'description', 'hours']
 
 const enrichOrder = async (order) => {
   if (!order) {
@@ -38,7 +41,7 @@ const getOrders = async (req, res) => {
 
 const createOrder = async (req, res) => {
   try {
-    const orderCreate = await Order.create(req.body)
+    const orderCreate = await Order.create(withCreateAudit(pickAllowedFields(req.body, ORDER_FIELDS), req.auth))
     return success(res, 201, 'Orden creada con exito', {
       order: await enrichOrder(orderCreate),
     })
@@ -76,7 +79,7 @@ const getOrderById = async (req, res) => {
 const updateOrder = async (req, res) => {
   const { id } = req.params
   try {
-    const orderUpdate = await Order.update(req.body, {
+    const orderUpdate = await Order.update(withUpdateAudit(pickAllowedFields(req.body, ORDER_FIELDS), req.auth), {
       where: {
         id: id,
       },

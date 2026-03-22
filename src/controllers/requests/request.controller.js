@@ -1,6 +1,9 @@
 const Request = require('../../models/Requests/request.model')
 const { success, failure } = require('../../utils/apiResponse')
 const { handleRequestError } = require('../../utils/requestError')
+const { pickAllowedFields, withCreateAudit, withUpdateAudit } = require('../../utils/payload')
+
+const REQUEST_FIELDS = ['description', 'status']
 const getRequests = async (req, res) => {
   try {
     const requests = await Request.findAll()
@@ -16,7 +19,13 @@ const getRequests = async (req, res) => {
 
 const createRequest = async (req, res) => {
   try {
-    const requestCreate = await Request.create(req.body)
+    const requestPayload = pickAllowedFields(req.body, REQUEST_FIELDS)
+
+    if (!requestPayload.status) {
+      requestPayload.status = 'pending'
+    }
+
+    const requestCreate = await Request.create(withCreateAudit(requestPayload, req.auth))
     return success(res, 201, 'Solicitud creada con exito', {
       request: requestCreate,
     })
@@ -54,7 +63,7 @@ const getRequestById = async (req, res) => {
 const updateRequest = async (req, res) => {
   const { id } = req.params
   try {
-    const requestUpdate = await Request.update(req.body, {
+    const requestUpdate = await Request.update(withUpdateAudit(pickAllowedFields(req.body, REQUEST_FIELDS), req.auth), {
       where: {
         id: id,
       },

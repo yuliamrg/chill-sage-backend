@@ -1,5 +1,9 @@
 const Profile = require('../../models/Profiles/Profile.model')
 const { success, failure } = require('../../utils/apiResponse')
+const { handleRequestError } = require('../../utils/requestError')
+const { pickAllowedFields, withCreateAudit, withUpdateAudit } = require('../../utils/payload')
+
+const PROFILE_FIELDS = ['description']
 const getProfiles = async (req, res) => {
   try {
     const profiles = await Profile.findAll()
@@ -32,13 +36,18 @@ const getProfileById = async (req, res) => {
 
 const createProfile = async (req, res) => {
   try {
-    const profileCreate = await Profile.create(req.body)
+    const profileCreate = await Profile.create(withCreateAudit(pickAllowedFields(req.body, PROFILE_FIELDS), req.auth))
     return success(res, 201, 'Perfil creado con exito', {
       profile: profileCreate,
     })
   } catch (error) {
-    return failure(res, 500, 'Error al crear el perfil: ' + error.message, {
-      profile: null,
+    return handleRequestError({
+      context: 'profiles.create',
+      req,
+      res,
+      error,
+      fallbackMessage: 'Error al crear el perfil: ',
+      payloadKey: 'profile',
     })
   }
 }
@@ -46,7 +55,7 @@ const createProfile = async (req, res) => {
 const updateProfile = async (req, res) => {
   const { id } = req.params
   try {
-    const profileUpdate = await Profile.update(req.body, {
+    const profileUpdate = await Profile.update(withUpdateAudit(pickAllowedFields(req.body, PROFILE_FIELDS), req.auth), {
       where: {
         id: id,
       },
@@ -62,8 +71,13 @@ const updateProfile = async (req, res) => {
       profile: updatedProfile,
     })
   } catch (error) {
-    return failure(res, 500, 'Error al actualizar el perfil: ' + error.message, {
-      profile: null,
+    return handleRequestError({
+      context: 'profiles.update',
+      req,
+      res,
+      error,
+      fallbackMessage: 'Error al actualizar el perfil: ',
+      payloadKey: 'profile',
     })
   }
 }
