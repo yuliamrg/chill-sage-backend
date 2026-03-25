@@ -357,22 +357,25 @@ Reglas:
 - una solicitud anulada no puede generar orden
 - una solicitud aprobada debe quedar lista para convertirse en orden
 - una solicitud no debe cambiar de equipo o solicitante despues de ser aprobada, salvo permiso administrativo
+- los cambios de estado deben ocurrir por acciones explicitas de aprobar o anular, no por edicion general
 
 ## 10.4 Estado de orden de trabajo
 
 Valores persistidos:
 
-- `pendiente`
-- `terminada`
-- `anulada`
+- `assigned`
+- `in_progress`
+- `completed`
+- `cancelled`
 
 Comportamiento esperado:
 
-- una orden nace en `pendiente`
-- una orden `pendiente` puede iniciar ejecucion registrando `fecha_inicio`
-- si tiene `fecha_inicio` y no tiene `fecha_fin`, la interfaz puede mostrarla como `en ejecucion` aunque el estado persistido siga siendo `pendiente`
-- una orden pasa a `terminada` cuando tiene `fecha_fin`, `descripcion_trabajo` y responsable tecnico definido
-- una orden anulada no debe aceptar cierre ni calificacion
+- una orden nace en `assigned`
+- una orden `assigned` puede iniciar ejecucion registrando `fecha_inicio`
+- una orden `in_progress` representa ejecucion activa
+- una orden pasa a `completed` cuando tiene `fecha_fin`, `descripcion_trabajo` y responsable tecnico definido
+- una orden `cancelled` no debe aceptar cierre ni calificacion
+- `assign`, `start`, `complete` y `cancel` representan acciones de negocio separadas del update general
 
 ## 10.5 Estado de cronograma
 
@@ -387,6 +390,8 @@ Reglas:
 - `sin_asignar` significa programado pero todavia no convertido en operacion activa
 - `abierto` indica que el cronograma ya esta en ejecucion o seguimiento
 - `cerrado` implica actividad completada o ciclo finalizado
+- la transicion valida es `sin_asignar -> abierto -> cerrado`
+- un cronograma cerrado no debe volver a `abierto`
 
 ## 11. Flujos funcionales obligatorios
 
@@ -422,8 +427,8 @@ Reglas:
 - el numero de serie del equipo debe ser unico
 - no debe existir orden para una solicitud anulada
 - se recomienda una sola orden activa por solicitud
-- una orden terminada debe tener `fecha_inicio`, `fecha_fin` y `descripcion_trabajo`
-- una calificacion solo debe poder registrarse sobre una orden terminada
+- una orden completada debe tener `fecha_inicio`, `fecha_fin` y `descripcion_trabajo`
+- una calificacion solo debe poder registrarse sobre una orden completada
 - un tecnico no debe cerrar una orden que no le fue asignada, salvo permisos administrativos
 - un solicitante solo debe ver solicitudes y ordenes de su cliente o de su propio alcance
 - un equipo retirado no debe aparecer como seleccion principal en nuevas programaciones preventivas

@@ -4,7 +4,7 @@
 
 Este documento traduce el contexto general del producto a una especificacion funcional organizada por modulos. Su funcion es servir como contrato funcional para desarrollo, diseno, pruebas y ajustes de una base existente.
 
-Debe leerse junto con [CONTEXTO_PRODUCTO_CHILLSAGE.md](/C:/Users/yulia/Documents/projects/chillsage/chillsage-backend/docs/context/CONTEXTO_PRODUCTO_CHILLSAGE.md), pero este archivo ya esta escrito en formato operativo para construir el sistema.
+Debe leerse junto con [CONTEXTO_PRODUCTO_CHILLSAGE.md](./CONTEXTO_PRODUCTO_CHILLSAGE.md), pero este archivo ya esta escrito en formato operativo para construir el sistema.
 
 ## 2. Alcance de esta especificacion
 
@@ -30,6 +30,7 @@ Estas reglas aplican a todos los modulos:
 - el frontend puede guiar y validar, pero el backend es la fuente final de verdad
 - los cambios criticos deben pedir confirmacion
 - no se deben permitir acciones incompatibles con el estado del registro
+- en modulos operativos los cambios de estado deben salir de endpoints de accion y no de `PUT`
 - los roles deben restringir navegacion, botones y endpoints
 - no se deben eliminar fisicamente registros operativos criticos en la operacion normal
 - los mensajes de error y exito deben ser claros y accionables
@@ -300,6 +301,7 @@ Registrar necesidades de servicio y convertirlas en el punto de partida del fluj
 - la solicitud nace en estado `pendiente`
 - una solicitud anulada no puede generar orden
 - una solicitud aprobada queda habilitada para crear orden
+- una solicitud `approved` o `cancelled` no debe editarse por `PUT`
 - el solicitante solo debe ver sus solicitudes o las de su cliente
 - el equipo asociado debe pertenecer al alcance del cliente del solicitante si esa restriccion existe en la operacion
 
@@ -309,6 +311,8 @@ Registrar necesidades de servicio y convertirlas en el punto de partida del fluj
 - filtros por estado y tipo visibles en el listado
 - etiquetas de estado claras
 - accion de aprobar o anular restringida a roles operativos
+- no mostrar selector libre de estado en formularios de solicitud
+- cuando el estado sea distinto de `pending`, mostrar el registro como solo lectura
 - detalle con trazabilidad de quien creo y quien reviso
 
 ### Comportamiento esperado en backend
@@ -353,24 +357,28 @@ Gestionar la ejecucion concreta del trabajo tecnico derivado de una solicitud ap
 - `ORD-06` El tecnico asignado debe poder registrar `fecha_fin`.
 - `ORD-07` El tecnico asignado debe poder registrar `horas_trabajadas`.
 - `ORD-08` El tecnico asignado debe poder registrar `descripcion_trabajo`.
-- `ORD-09` El sistema debe permitir marcar la orden como `terminada`.
+- `ORD-09` El sistema debe permitir marcar la orden como `completed`.
 - `ORD-10` El sistema debe permitir anular una orden.
 - `ORD-11` El sistema debe indicar si la orden fue recibida a satisfaccion.
 
 ### Reglas funcionales
 
 - la orden solo puede nacer desde una solicitud aprobada
-- se recomienda una sola orden activa por solicitud
-- una orden anulada no puede cerrarse ni calificarse
-- una orden terminada debe tener tecnico, fecha_inicio, fecha_fin y descripcion_trabajo
+- solo se permite una orden activa por solicitud
+- una orden `cancelled` no puede cerrarse ni calificarse
+- una orden `completed` debe tener tecnico, fecha_inicio, fecha_fin y descripcion_trabajo
+- una orden `completed` o `cancelled` no debe editarse por `PUT`
+- `assign`, `start`, `complete` y `cancel` deben tratarse como acciones separadas del update general
 - el tecnico no debe modificar ordenes que no le fueron asignadas, salvo permiso superior
-- la interfaz puede mostrar estado derivado `en ejecucion` cuando exista `fecha_inicio` y no exista `fecha_fin`
+- la interfaz puede mostrar estado derivado `en ejecucion` cuando la orden persistida este en `in_progress`
 
 ### Comportamiento esperado en frontend
 
 - flujo claro de asignacion y ejecucion
 - detalle de orden con datos de cliente, equipo, solicitud y tecnico
 - acciones visibles segun rol y estado
+- no usar formulario general para simular cambios de estado
+- si el actor es `tecnico`, solo mostrar `start` y `complete` sobre ordenes asignadas a ese tecnico
 - control de cierre con confirmacion
 - mostrar estado, horas y resultado de manera muy visible
 
@@ -423,6 +431,8 @@ Planificar actividades de mantenimiento para clientes y equipos en fechas determ
 - se recomienda al menos un equipo asociado para que tenga sentido operativo
 - equipos retirados o de baja no deben entrar en programacion preventiva ordinaria
 - `sin_asignar`, `abierto` y `cerrado` son los estados base
+- la secuencia operativa valida es `sin_asignar -> abierto -> cerrado`
+- un cronograma `cerrado` no debe editarse ni reabrirse
 
 ### Comportamiento esperado en frontend
 
@@ -430,6 +440,8 @@ Planificar actividades de mantenimiento para clientes y equipos en fechas determ
 - detalle con equipos asociados
 - filtros por cliente y estado
 - cambio de estado controlado y visible
+- no exponer selector libre de estado en formularios
+- no ofrecer `cerrar` directamente desde `sin_asignar`
 
 ### Comportamiento esperado en backend
 

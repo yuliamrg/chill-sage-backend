@@ -15,17 +15,17 @@ No existe todavia el dominio completo del producto, pero la operacion principal 
 
 ## Fuente De Verdad Por Tema
 
-- producto objetivo: [context/CONTEXTO_PRODUCTO_CHILLSAGE.md](/C:/Users/yulia/Documents/projects/chillsage/chillsage-backend/docs/context/CONTEXTO_PRODUCTO_CHILLSAGE.md)
-- especificacion funcional: [context/ESPECIFICACION_FUNCIONAL_MODULOS_CHILLSAGE.md](/C:/Users/yulia/Documents/projects/chillsage/chillsage-backend/docs/context/ESPECIFICACION_FUNCIONAL_MODULOS_CHILLSAGE.md)
-- contrato backend/frontend real: [contracts/FRONTEND_API_SERVICES.md](/C:/Users/yulia/Documents/projects/chillsage/chillsage-backend/docs/contracts/FRONTEND_API_SERVICES.md)
-- revision de brechas y riesgos: [engineering/REVIEW.md](/C:/Users/yulia/Documents/projects/chillsage/chillsage-backend/docs/engineering/REVIEW.md)
-- reglas de proceso: [process/GIT_RULES.md](/C:/Users/yulia/Documents/projects/chillsage/chillsage-backend/docs/process/GIT_RULES.md)
+- producto objetivo: [context/CONTEXTO_PRODUCTO_CHILLSAGE.md](./context/CONTEXTO_PRODUCTO_CHILLSAGE.md)
+- especificacion funcional: [context/ESPECIFICACION_FUNCIONAL_MODULOS_CHILLSAGE.md](./context/ESPECIFICACION_FUNCIONAL_MODULOS_CHILLSAGE.md)
+- contrato backend/frontend real: [contracts/FRONTEND_API_SERVICES.md](./contracts/FRONTEND_API_SERVICES.md)
+- revision de brechas y riesgos: [engineering/REVIEW.md](./engineering/REVIEW.md)
+- reglas de proceso: [process/GIT_RULES.md](./process/GIT_RULES.md)
 
 ## Como Leer El Proyecto
 
 1. Leer este archivo.
-2. Leer [contracts/FRONTEND_API_SERVICES.md](/C:/Users/yulia/Documents/projects/chillsage/chillsage-backend/docs/contracts/FRONTEND_API_SERVICES.md) para entender la API real.
-3. Leer [engineering/REVIEW.md](/C:/Users/yulia/Documents/projects/chillsage/chillsage-backend/docs/engineering/REVIEW.md) para entender lo que aun falta.
+2. Leer [contracts/FRONTEND_API_SERVICES.md](./contracts/FRONTEND_API_SERVICES.md) para entender la API real.
+3. Leer [engineering/REVIEW.md](./engineering/REVIEW.md) para entender lo que aun falta.
 4. Solo despues usar `context/` para orientar cambios de producto o cerrar brechas.
 
 ## Arquitectura Real
@@ -48,7 +48,8 @@ Patron dominante actual:
 
 - rutas por recurso
 - controladores HTTP con reglas de negocio embebidas
-- modelos Sequelize sin capa formal de dominio o servicios
+- politicas de dominio compartidas para `requests`, `orders` y `schedules`
+- modelos Sequelize sin una capa de servicios completa para todo el sistema
 - enriquecimientos manuales para frontend
 - tests de integracion HTTP para contrato y permisos
 
@@ -85,6 +86,7 @@ Cuando eso se requiere, el repo expone scripts manuales:
 - filtros por `client_id`, `requester_user_id`, `equipment_id`, `status`, `type`, `date_from`, `date_to`
 - ownership parcial para `solicitante`
 - endpoints de accion: `approve` y `cancel`
+- `PUT` no cambia estado y solicitudes no `pending` deben tratarse como solo lectura
 
 ### Orders
 
@@ -93,6 +95,7 @@ Cuando eso se requiere, el repo expone scripts manuales:
 - filtros por `client_id`, `equipment_id`, `assigned_user_id`, `status`, `type`, `date_from`, `date_to`
 - endpoints de accion: `assign`, `start`, `complete`, `cancel`
 - tecnico asignado puede iniciar y completar su propia orden
+- `PUT` no reemplaza endpoints de accion
 
 ### Schedules
 
@@ -100,6 +103,7 @@ Cuando eso se requiere, el repo expone scripts manuales:
 - filtros por `client_id`, `status`, `type`, `date_from`, `date_to`
 - relacion real `schedule_equipments`
 - endpoints de accion: `open` y `close`
+- flujo valido: `unassigned -> open -> closed`
 
 ## Criterio Para Cambios
 
@@ -107,7 +111,7 @@ Si el cambio toca contrato o comportamiento de negocio:
 
 1. valida rutas, controlador y modelo reales
 2. no asumas que el documento de producto ya esta implementado
-3. actualiza [contracts/FRONTEND_API_SERVICES.md](/C:/Users/yulia/Documents/projects/chillsage/chillsage-backend/docs/contracts/FRONTEND_API_SERVICES.md) en el mismo cambio
+3. actualiza [contracts/FRONTEND_API_SERVICES.md](./contracts/FRONTEND_API_SERVICES.md) en el mismo cambio
 4. si hay cambio rompiente, refleja el impacto esperado en frontend
 
 ## Meta Practica

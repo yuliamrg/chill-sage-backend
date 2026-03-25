@@ -2,7 +2,7 @@
 
 Documento de referencia del backend segun el codigo actual del repositorio.
 
-Fecha de referencia: `2026-03-22`
+Fecha de referencia: `2026-03-24`
 
 ## Alcance
 
@@ -88,6 +88,8 @@ La API responde con esta forma:
 - conflictos de dominio usan `409`
 - falta de autenticacion usa `401`
 - falta de permiso usa `403`
+- en `requests`, `orders` y `schedules` el frontend no debe intentar cambiar `status` por `PUT`
+- las transiciones de negocio viven en endpoints de accion dedicados
 
 ## Login
 
@@ -95,12 +97,11 @@ Ruta:
 
 - `POST /users/login`
 
-Payload permitido:
+Payload de frontend:
 
 ```json
 {
   "email": "user@example.com",
-  "username": "opcional",
   "password": "secret"
 }
 ```
@@ -109,7 +110,9 @@ Notas reales:
 
 - devuelve `access_token` JWT Bearer
 - no crea sesion persistente server-side
-- responde `400` si falta `password` o faltan `email` y `username`
+- frontend debe autenticarse con `email` y `password`
+- `username` debe tratarse como compatibilidad legacy del backend, no como contrato vigente para frontend
+- responde `400` si falta `password` o falta `email`
 - responde `401` si el usuario no existe, esta inactivo o la contrasena no coincide
 - el campo `password` nunca se devuelve
 
@@ -239,8 +242,10 @@ Notas:
 
 Restriccion:
 
-- solo `admin` puede editar solicitudes no `pending`
-- `planeador` solo puede editar solicitudes `pending`
+- `PUT` solo edita campos operativos de una solicitud `pending`
+- solicitudes `approved` o `cancelled` no se editan por `PUT`
+- `status`, `reviewed_at`, `reviewed_by_user_id`, `review_notes` y `cancel_reason` se controlan por acciones explicitas
+- frontend no debe renderizar selector libre de `status` para solicitudes
 
 #### Estados
 
@@ -266,6 +271,7 @@ Efectos:
 - fija `reviewed_at`
 - fija `reviewed_by_user_id`
 - limpia `cancel_reason`
+- solo funciona si la solicitud sigue en `pending`
 
 `POST /requests/:id/cancel`
 
@@ -308,6 +314,13 @@ Efectos:
 - el equipo debe pertenecer al cliente indicado
 - el solicitante asociado debe existir y estar activo
 - `solicitante` solo puede consultar sus solicitudes o las de su cliente
+- si la solicitud ya no esta en `pending`, frontend debe tratarla como solo lectura
+
+#### Guia de frontend por estado
+
+- `pending`: permitir `editar`, `approve` y `cancel` segun rol
+- `approved`: mostrar datos de revision y habilitar crear orden si el rol lo permite; bloquear `PUT`
+- `cancelled`: solo lectura; no ofrecer `approve`, `cancel` ni crear orden
 
 ### Orders
 
@@ -385,6 +398,8 @@ Notas:
 Restriccion:
 
 - no se puede editar una orden `completed` o `cancelled`
+- `PUT` no acepta cambios de `status` ni campos propios de `start`, `complete` o `cancel`
+- frontend no debe usar `PUT` para simular `assign`, `start`, `complete` o `cancel`
 
 #### Estados
 
@@ -467,6 +482,7 @@ Reglas:
 
 - exige `cancel_reason`
 - no permite cancelar una orden `completed`
+- falla si la orden ya estaba `cancelled`
 
 #### Filtros de listado
 
@@ -491,6 +507,15 @@ Reglas:
 - una `request` no puede tener mas de una `order` activa
 - `tecnico` solo puede consultar sus ordenes asignadas
 - `solicitante` solo puede consultar ordenes derivadas de sus solicitudes o de su cliente
+- `cancel` solo aplica sobre ordenes `assigned` o `in_progress`
+
+#### Guia de frontend por estado
+
+- `assigned`: permitir `assign`, `start`, `cancel` y edicion administrativa por `PUT`
+- `in_progress`: permitir `complete` y `cancel`; bloquear `assign` y evitar editar campos de cierre por `PUT`
+- `completed`: solo lectura; no ofrecer `PUT`, `assign`, `start`, `complete` ni `cancel`
+- `cancelled`: solo lectura; no ofrecer acciones adicionales
+- si el actor es `tecnico`, solo mostrar `start` y `complete` cuando la orden este asignada a ese mismo tecnico
 
 ### Schedules
 
@@ -561,6 +586,8 @@ Reglas:
 Restriccion:
 
 - no se puede editar un cronograma `closed`
+- `PUT` no acepta cambios directos de `status`
+- frontend no debe exponer selector de estado editable para cronogramas
 
 #### Estados
 
@@ -581,6 +608,8 @@ Payload:
 Reglas:
 
 - cambia `status` a `open`
+- solo funciona desde `unassigned`
+- falla si ya estaba abierto
 - no permite reabrir cronogramas `closed`
 
 `POST /schedules/:id/close`
@@ -594,6 +623,7 @@ Payload:
 Reglas:
 
 - cambia `status` a `closed`
+- solo funciona desde `open`
 - falla si ya estaba cerrado
 
 #### Filtros de listado
@@ -616,6 +646,13 @@ Reglas:
 - todos los equipos deben existir
 - todos los equipos deben pertenecer al mismo cliente
 - no acepta equipos en estado `de_baja`, `retirado` o `retired`
+
+#### Guia de frontend por estado
+
+- `unassigned`: permitir `PUT` y accion `open`
+- `open`: permitir `PUT` y accion `close`; no ofrecer `open` nuevamente
+- `closed`: solo lectura; bloquear `PUT`, `open` y `close`
+- no ofrecer `close` directamente desde `unassigned`
 
 ## Campos Enriquecidos En Otros Recursos
 
@@ -666,9 +703,18 @@ Cuando cambie el contrato del backend, revisa como minimo:
 - `src/app/core/models/domain.models.ts`
 - `src/app/core/mappers/domain.mappers.ts`
 - `src/app/core/services/<resource>.service.ts`
+- `src/app/features/auth/**` para login por `email`
 - formularios de alta y edicion
 - listados con filtros operativos
 - detalle y acciones de transicion por estado
+
+Puntos concretos a alinear en frontend con el hardening actual:
+
+- usar `email` como identificador de login
+- quitar selects o inputs libres de `status` en `requests`, `orders` y `schedules`
+- modelar acciones de negocio como llamados dedicados a `approve`, `cancel`, `assign`, `start`, `complete`, `open` y `close`
+- deshabilitar botones de accion cuando el estado actual no permita la transicion para evitar `409`
+- tratar `approved`, `completed`, `cancelled` y `closed` como estados de solo lectura en sus formularios de edicion
 
 ## Protocolo De Cambio
 
@@ -681,7 +727,7 @@ Cuando cambie el contrato del backend, revisa como minimo:
 
 - no hay refresh token
 - no hay paginacion
-- `requests`, `orders` y `schedules` ya tienen filtros y acciones de dominio; otros modulos siguen mayormente CRUD
+- `requests`, `orders` y `schedules` ya tienen filtros, acciones de dominio y politicas centralizadas; otros modulos siguen mayormente CRUD
 - no existe recurso propio para historial tecnico
 - no existe recurso propio para calificacion del servicio
 - sigue existiendo borrado fisico como operacion excepcional reservada a `admin`
