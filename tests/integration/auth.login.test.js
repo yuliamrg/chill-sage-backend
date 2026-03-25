@@ -3,7 +3,7 @@ const request = require('supertest')
 
 const User = require('../../src/models/Users/User.model')
 const { ROLE_IDS } = require('../../src/auth/roles')
-const { app, initializeApp, login } = require('../helpers/auth')
+const { app, getFallbackPassword, initializeApp, login } = require('../helpers/auth')
 
 describe('POST /api/users/login', () => {
   const inactiveUser = {
@@ -68,7 +68,7 @@ describe('POST /api/users/login', () => {
     const response = await request(app)
       .post('/api/users/login')
       .send({
-        password: process.env.TEST_LOGIN_PASSWORD,
+        password: getFallbackPassword(),
       })
 
     expect(response.status).toBe(400)

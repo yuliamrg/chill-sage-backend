@@ -93,4 +93,71 @@ describe('orders integration', () => {
     expect(completeOrderResponse.body.order.assigned_user_id).toBe(ctx.tecnicoUser.id)
     expect(completeOrderResponse.body.order.received_satisfaction).toBe(true)
   })
+
+  test('order updates cannot bypass action endpoints and cancelled orders cannot be cancelled twice', async () => {
+    const createRequestResponse = await request(app)
+      .post('/api/requests')
+      .set('Authorization', ctx.solicitanteToken)
+      .send({
+        client_id: ctx.clientA.id,
+        equipment_id: ctx.equipmentA2.id,
+        type: 'inspection',
+        title: 'Order PUT hardening',
+        description: 'Validates action-only transitions',
+        priority: 'high',
+      })
+
+    const requestId = createRequestResponse.body.request.id
+    trackRequest(requestId)
+
+    await request(app)
+      .post(`/api/requests/${requestId}/approve`)
+      .set('Authorization', ctx.planeadorToken)
+      .send({
+        review_notes: 'Ready for PUT hardening test',
+      })
+
+    const createOrderResponse = await request(app)
+      .post('/api/orders')
+      .set('Authorization', ctx.planeadorToken)
+      .send({
+        request_id: requestId,
+        assigned_user_id: ctx.tecnicoUser.id,
+      })
+
+    expect(createOrderResponse.status).toBe(201)
+    const orderId = createOrderResponse.body.order.id
+    trackOrder(orderId)
+
+    const invalidPutResponse = await request(app)
+      .put(`/api/orders/${orderId}`)
+      .set('Authorization', ctx.planeadorToken)
+      .send({
+        status: 'completed',
+        started_at: '2026-03-22T14:10:00.000Z',
+      })
+
+    expect(invalidPutResponse.status).toBe(409)
+    expect(invalidPutResponse.body.msg).toMatch(/endpoints de accion|PUT/i)
+
+    const cancelResponse = await request(app)
+      .post(`/api/orders/${orderId}/cancel`)
+      .set('Authorization', ctx.planeadorToken)
+      .send({
+        cancel_reason: 'Duplicated order',
+      })
+
+    expect(cancelResponse.status).toBe(200)
+    expect(cancelResponse.body.order.status).toBe('cancelled')
+
+    const secondCancelResponse = await request(app)
+      .post(`/api/orders/${orderId}/cancel`)
+      .set('Authorization', ctx.planeadorToken)
+      .send({
+        cancel_reason: 'Retry cancellation',
+      })
+
+    expect(secondCancelResponse.status).toBe(409)
+    expect(secondCancelResponse.body.msg).toMatch(/ya esta cancelada/i)
+  })
 })

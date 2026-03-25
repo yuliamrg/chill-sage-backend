@@ -104,4 +104,51 @@ describe('requests integration', () => {
     expect(adminDeleteResponse.status).toBe(200)
     untrack('requests', requestId)
   })
+
+  test('request updates cannot force state transitions or edit approved records', async () => {
+    const createResponse = await request(app)
+      .post('/api/requests')
+      .set('Authorization', ctx.solicitanteToken)
+      .send({
+        client_id: ctx.clientA.id,
+        equipment_id: ctx.equipmentA1.id,
+        type: 'corrective',
+        title: 'Guard state transitions',
+        description: 'Ensure PUT cannot approve requests',
+        priority: 'medium',
+      })
+
+    const requestId = createResponse.body.request.id
+    trackRequest(requestId)
+
+    const invalidPutResponse = await request(app)
+      .put(`/api/requests/${requestId}`)
+      .set('Authorization', ctx.planeadorToken)
+      .send({
+        status: 'approved',
+        title: 'Mutated by PUT',
+      })
+
+    expect(invalidPutResponse.status).toBe(409)
+    expect(invalidPutResponse.body.msg).toMatch(/endpoints de accion|PUT/i)
+
+    const approveResponse = await request(app)
+      .post(`/api/requests/${requestId}/approve`)
+      .set('Authorization', ctx.planeadorToken)
+      .send({
+        review_notes: 'Approved via action endpoint',
+      })
+
+    expect(approveResponse.status).toBe(200)
+
+    const editApprovedResponse = await request(app)
+      .put(`/api/requests/${requestId}`)
+      .set('Authorization', ctx.adminToken)
+      .send({
+        title: 'Edited after approval',
+      })
+
+    expect(editApprovedResponse.status).toBe(409)
+    expect(editApprovedResponse.body.msg).toMatch(/no se pueden editar/i)
+  })
 })

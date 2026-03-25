@@ -111,8 +111,9 @@ Notas reales:
 - devuelve `access_token` JWT Bearer
 - no crea sesion persistente server-side
 - frontend debe autenticarse con `email` y `password`
+- backend tambien acepta `username` como compatibilidad legacy
 - `username` debe tratarse como compatibilidad legacy del backend, no como contrato vigente para frontend
-- responde `400` si falta `password` o falta `email`
+- responde `400` si falta `password` o faltan `email` y `username`
 - responde `401` si el usuario no existe, esta inactivo o la contrasena no coincide
 - el campo `password` nunca se devuelve
 

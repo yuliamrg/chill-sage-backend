@@ -16,6 +16,7 @@ Avance actual sobre este plan:
 - autorizacion por rol implementada en rutas
 - listas blancas de campos y proteccion de auditoria en recursos criticos
 - flujo operativo base implementado en `requests`, `orders` y `schedules`
+- reglas de estado y acciones de negocio centralizadas para `requests`, `orders` y `schedules`
 - pruebas de integracion de login, autorizacion y modulos operativos implementadas
 
 Pendiente de este plan:
@@ -83,9 +84,23 @@ Acciones:
 3. validar relaciones y enums de forma consistente
 4. consolidar DTOs o helpers de validacion si crece la complejidad
 
+### 5. Endurecer reglas de estado y acciones por endpoint
+
+Estado actual:
+
+- resuelto para `requests`, `orders` y `schedules` con politicas compartidas de dominio
+- las transiciones criticas viven en acciones explicitas y no en `PUT`
+
+Acciones:
+
+1. mantener centralizadas las politicas de transicion, permisos y precondiciones
+2. impedir cambios de `status` y campos de accion desde `POST` o `PUT` genericos
+3. exigir secuencia valida de negocio por endpoint y bloquear repeticiones
+4. reutilizar el patron en modulos futuros con estado operativo
+
 ## Prioridad 1
 
-### 5. Endurecer manejo de errores
+### 6. Endurecer manejo de errores
 
 Problema actual:
 
@@ -98,7 +113,7 @@ Acciones:
 3. dejar detalle tecnico en logs
 4. unificar criterios para `400`, `401`, `403`, `404`, `409` y `500`
 
-### 6. Restringir CORS
+### 7. Restringir CORS
 
 Problema actual:
 
@@ -110,7 +125,7 @@ Acciones:
 2. permitir solo frontends aprobados
 3. documentar variables de entorno necesarias
 
-### 7. Mejorar observabilidad
+### 8. Mejorar observabilidad
 
 Acciones:
 
@@ -121,7 +136,7 @@ Acciones:
 
 ## Prioridad 2
 
-### 8. Ampliar pruebas automatizadas
+### 9. Ampliar pruebas automatizadas
 
 Estado actual:
 
@@ -133,7 +148,7 @@ Acciones:
 2. agregar mas escenarios negativos de validacion
 3. automatizar ejecucion en CI
 
-### 9. Formalizar gestion del esquema
+### 10. Formalizar gestion del esquema
 
 Problema actual:
 
@@ -145,7 +160,7 @@ Acciones:
 2. definir seeders para catalogos base
 3. reducir dependencia de cambios automaticos al iniciar
 
-### 10. Agregar paginacion y metadatos
+### 11. Agregar paginacion y metadatos
 
 Problema actual:
 
@@ -161,12 +176,13 @@ Acciones:
 
 1. secretos y rotacion
 2. rate limiting y endurecimiento de login
-3. manejo de errores
-4. CORS
-5. migraciones
-6. ampliacion de tests
-7. observabilidad
-8. paginacion
+3. reglas de estado y acciones por endpoint
+4. manejo de errores
+5. CORS
+6. migraciones
+7. ampliacion de tests
+8. observabilidad
+9. paginacion
 
 ## Criterio Minimo Para Decir "Listo Para Cliente"
 
@@ -176,6 +192,7 @@ Como minimo deberian estar completos:
 - autenticacion funcional
 - autorizacion por rol y alcance suficiente
 - validacion de payloads en todos los recursos criticos
+- reglas de estado y acciones criticas controladas por endpoint
 - errores endurecidos
 - CORS restringido
 - pruebas basicas de login y de flujos operativos criticos

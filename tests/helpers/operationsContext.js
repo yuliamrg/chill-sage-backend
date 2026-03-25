@@ -1,4 +1,4 @@
-const { initializeApp, getAuthHeader, login } = require('./auth')
+const { getFallbackPassword, initializeApp, getAuthHeader, login } = require('./auth')
 const {
   cleanupTrackedFixtures,
   createClientFixture,
@@ -30,11 +30,11 @@ const buildOperationsContext = async () => {
   const extraTechUser = await createTechUserFixture({
     adminUserId: adminUser.id,
     suffix,
-    password: process.env.TEST_LOGIN_PASSWORD,
+    password: getFallbackPassword(),
   })
   const extraTechLogin = await login({
     email: extraTechUser.email,
-    password: process.env.TEST_LOGIN_PASSWORD,
+    password: getFallbackPassword(),
   })
 
   return {

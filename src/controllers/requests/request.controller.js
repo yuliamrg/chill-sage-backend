@@ -1,6 +1,17 @@
 const { Op } = require('sequelize')
 
 const { ROLE_NAMES } = require('../../auth/roles')
+const {
+  REQUEST_ACTIONS,
+  assertNoManualRequestStateFields,
+  assertRequestActionAllowed,
+  assertRequestRequiredFields,
+  assertRequestUpdateAllowed,
+  buildCreateRequestPayload,
+  buildRequestActionUpdate,
+  validateRequestTypeAndPriority,
+} = require('../../domain/operations/requestPolicy')
+const { DomainError, buildDomainErrorResponse } = require('../../domain/shared/domainError')
 const { Client, Equipment, Order, Request, User } = require('../../models')
 const { success, failure } = require('../../utils/apiResponse')
 const { handleRequestError } = require('../../utils/requestError')
@@ -8,24 +19,6 @@ const { pickAllowedFields, withCreateAudit, withUpdateAudit } = require('../../u
 
 const REQUEST_CREATE_FIELDS = ['client_id', 'requester_user_id', 'equipment_id', 'type', 'title', 'description', 'priority']
 const REQUEST_UPDATE_FIELDS = ['client_id', 'requester_user_id', 'equipment_id', 'type', 'title', 'description', 'priority']
-const REQUEST_STATUSES = {
-  PENDING: 'pending',
-  APPROVED: 'approved',
-  CANCELLED: 'cancelled',
-}
-const REQUEST_TYPES = new Set(['corrective', 'preventive', 'inspection', 'installation'])
-const REQUEST_PRIORITIES = new Set(['low', 'medium', 'high', 'critical'])
-
-class DomainError extends Error {
-  constructor(statusCode, message) {
-    super(message)
-    this.name = 'DomainError'
-    this.statusCode = statusCode
-  }
-}
-
-const buildDomainErrorResponse = (res, error, payloadKey) =>
-  failure(res, error.statusCode || 400, error.message, { [payloadKey]: null })
 
 const parseDateRange = (value, fieldName) => {
   if (!value) {
@@ -65,16 +58,6 @@ const getEquipmentForClient = async (equipmentId, clientId) => {
   return equipment
 }
 
-const validateRequestTypeAndPriority = (payload) => {
-  if (payload.type && !REQUEST_TYPES.has(payload.type)) {
-    throw new DomainError(400, 'El tipo de solicitud no es valido')
-  }
-
-  if (payload.priority && !REQUEST_PRIORITIES.has(payload.priority)) {
-    throw new DomainError(400, 'La prioridad de la solicitud no es valida')
-  }
-}
-
 const validateRequester = async (requesterUserId) => {
   if (!requesterUserId) {
     throw new DomainError(400, 'La solicitud requiere un solicitante asociado')
@@ -97,6 +80,8 @@ const resolveCreatePayload = async (req) => {
   const payload = pickAllowedFields(req.body, REQUEST_CREATE_FIELDS)
   const authUser = await getUserScope(req.auth)
 
+  assertNoManualRequestStateFields(req.body, 'POST')
+
   if (req.auth.roleName === ROLE_NAMES.SOLICITANTE) {
     payload.requester_user_id = req.auth.userId
   }
@@ -115,68 +100,36 @@ const resolveCreatePayload = async (req) => {
     throw new DomainError(400, 'La solicitud requiere client_id')
   }
 
-  if (!payload.equipment_id) {
-    throw new DomainError(400, 'La solicitud requiere equipment_id')
-  }
+  const nextPayload = buildCreateRequestPayload(payload)
 
-  if (!payload.title?.trim()) {
-    throw new DomainError(400, 'La solicitud requiere title')
-  }
+  assertRequestRequiredFields(nextPayload)
+  validateRequestTypeAndPriority(nextPayload)
 
-  if (!payload.description?.trim()) {
-    throw new DomainError(400, 'La solicitud requiere description')
-  }
-
-  payload.type = payload.type || 'corrective'
-  payload.priority = payload.priority || 'medium'
-  payload.status = REQUEST_STATUSES.PENDING
-  payload.requested_at = new Date()
-
-  validateRequestTypeAndPriority(payload)
-
-  const client = await Client.findByPk(payload.client_id)
+  const client = await Client.findByPk(nextPayload.client_id)
 
   if (!client) {
     throw new DomainError(400, 'El cliente asociado no existe')
   }
 
-  await getEquipmentForClient(payload.equipment_id, payload.client_id)
+  await getEquipmentForClient(nextPayload.equipment_id, nextPayload.client_id)
 
-  return payload
+  return nextPayload
 }
 
 const resolveUpdatePayload = async (req, existingRequest) => {
   const payload = pickAllowedFields(req.body, REQUEST_UPDATE_FIELDS)
-
-  if (existingRequest.status !== REQUEST_STATUSES.PENDING && req.auth.roleName !== ROLE_NAMES.ADMIN) {
-    throw new DomainError(409, 'Solo se pueden editar solicitudes pendientes')
-  }
+  assertRequestUpdateAllowed({
+    request: existingRequest,
+    payload: req.body,
+    roleName: req.auth.roleName,
+  })
 
   const nextPayload = {
     ...existingRequest.toJSON(),
     ...payload,
   }
 
-  if (!nextPayload.client_id) {
-    throw new DomainError(400, 'La solicitud requiere client_id')
-  }
-
-  if (!nextPayload.requester_user_id) {
-    throw new DomainError(400, 'La solicitud requiere requester_user_id')
-  }
-
-  if (!nextPayload.equipment_id) {
-    throw new DomainError(400, 'La solicitud requiere equipment_id')
-  }
-
-  if (!nextPayload.title?.trim()) {
-    throw new DomainError(400, 'La solicitud requiere title')
-  }
-
-  if (!nextPayload.description?.trim()) {
-    throw new DomainError(400, 'La solicitud requiere description')
-  }
-
+  assertRequestRequiredFields(nextPayload)
   validateRequestTypeAndPriority(nextPayload)
   await validateRequester(nextPayload.requester_user_id)
 
@@ -377,20 +330,18 @@ const updateRequest = async (req, res) => {
 const approveRequest = async (req, res) => {
   try {
     const request = await getRequestRecord(req.params.id, req.auth)
-
-    if (request.status !== REQUEST_STATUSES.PENDING) {
-      throw new DomainError(409, 'Solo se pueden aprobar solicitudes pendientes')
-    }
+    assertRequestActionAllowed({
+      action: REQUEST_ACTIONS.APPROVE,
+      request,
+    })
 
     await request.update(
       withUpdateAudit(
-        {
-          status: REQUEST_STATUSES.APPROVED,
-          reviewed_at: new Date(),
-          reviewed_by_user_id: req.auth.userId,
-          review_notes: req.body.review_notes || null,
-          cancel_reason: null,
-        },
+        buildRequestActionUpdate({
+          action: REQUEST_ACTIONS.APPROVE,
+          actorUserId: req.auth.userId,
+          body: req.body,
+        }),
         req.auth
       )
     )
@@ -417,30 +368,20 @@ const approveRequest = async (req, res) => {
 const cancelRequest = async (req, res) => {
   try {
     const request = await getRequestRecord(req.params.id, req.auth)
-
-    if (request.status !== REQUEST_STATUSES.PENDING) {
-      throw new DomainError(409, 'Solo se pueden anular solicitudes pendientes')
-    }
-
-    if (!req.body.cancel_reason?.trim()) {
-      throw new DomainError(400, 'La anulacion requiere cancel_reason')
-    }
-
     const relatedOrder = await Order.findOne({ where: { request_id: request.id } })
-
-    if (relatedOrder) {
-      throw new DomainError(409, 'La solicitud ya genero una orden y no puede anularse')
-    }
+    assertRequestActionAllowed({
+      action: REQUEST_ACTIONS.CANCEL,
+      request,
+      relatedOrder,
+    })
 
     await request.update(
       withUpdateAudit(
-        {
-          status: REQUEST_STATUSES.CANCELLED,
-          reviewed_at: new Date(),
-          reviewed_by_user_id: req.auth.userId,
-          review_notes: req.body.review_notes || null,
-          cancel_reason: req.body.cancel_reason.trim(),
-        },
+        buildRequestActionUpdate({
+          action: REQUEST_ACTIONS.CANCEL,
+          actorUserId: req.auth.userId,
+          body: req.body,
+        }),
         req.auth
       )
     )

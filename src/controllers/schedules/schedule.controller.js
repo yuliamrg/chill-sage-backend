@@ -1,28 +1,21 @@
 const { Op } = require('sequelize')
 
+const {
+  SCHEDULE_ACTIONS,
+  SCHEDULE_STATUSES,
+  assertNoManualScheduleStateFields,
+  assertScheduleActionAllowed,
+  assertScheduleRequiredFields,
+  assertScheduleUpdateAllowed,
+} = require('../../domain/operations/schedulePolicy')
+const { DomainError, buildDomainErrorResponse } = require('../../domain/shared/domainError')
 const { Client, Equipment, Schedule, ScheduleEquipment } = require('../../models')
 const { success, failure } = require('../../utils/apiResponse')
 const { handleRequestError } = require('../../utils/requestError')
 const { pickAllowedFields, withCreateAudit, withUpdateAudit } = require('../../utils/payload')
 
 const SCHEDULE_FIELDS = ['client_id', 'name', 'type', 'scheduled_date', 'description']
-const SCHEDULE_STATUSES = {
-  UNASSIGNED: 'unassigned',
-  OPEN: 'open',
-  CLOSED: 'closed',
-}
 const DISALLOWED_EQUIPMENT_STATUSES = new Set(['de_baja', 'retirado', 'retired'])
-
-class DomainError extends Error {
-  constructor(statusCode, message) {
-    super(message)
-    this.name = 'DomainError'
-    this.statusCode = statusCode
-  }
-}
-
-const buildDomainErrorResponse = (res, error, payloadKey) =>
-  failure(res, error.statusCode || 400, error.message, { [payloadKey]: null })
 
 const parseDateValue = (value, fieldName) => {
   const parsed = new Date(value)
@@ -49,21 +42,7 @@ const normalizeEquipmentIds = (equipmentIds) => {
 }
 
 const validateSchedulePayload = async (payload, equipmentIds) => {
-  if (!payload.client_id) {
-    throw new DomainError(400, 'El cronograma requiere client_id')
-  }
-
-  if (!payload.name?.trim()) {
-    throw new DomainError(400, 'El cronograma requiere name')
-  }
-
-  if (!payload.type?.trim()) {
-    throw new DomainError(400, 'El cronograma requiere type')
-  }
-
-  if (!payload.scheduled_date) {
-    throw new DomainError(400, 'El cronograma requiere scheduled_date')
-  }
+  assertScheduleRequiredFields(payload)
 
   const client = await Client.findByPk(payload.client_id)
 
@@ -205,6 +184,7 @@ const getSchedules = async (req, res) => {
 
 const createSchedule = async (req, res) => {
   try {
+    assertNoManualScheduleStateFields(req.body, 'POST')
     const payload = pickAllowedFields(req.body, SCHEDULE_FIELDS)
     const equipmentIds = normalizeEquipmentIds(req.body.equipment_ids)
 
@@ -263,6 +243,7 @@ const getScheduleById = async (req, res) => {
 const updateSchedule = async (req, res) => {
   try {
     const schedule = await getScheduleRecord(req.params.id)
+    assertScheduleUpdateAllowed({ schedule, payload: req.body })
     const payload = pickAllowedFields(req.body, SCHEDULE_FIELDS)
     const current = schedule.toJSON()
     const nextPayload = {
@@ -270,10 +251,6 @@ const updateSchedule = async (req, res) => {
       ...payload,
     }
     const equipmentIds = req.body.equipment_ids ? normalizeEquipmentIds(req.body.equipment_ids) : null
-
-    if (schedule.status === SCHEDULE_STATUSES.CLOSED) {
-      throw new DomainError(409, 'No se puede editar un cronograma cerrado')
-    }
 
     if (nextPayload.scheduled_date) {
       nextPayload.scheduled_date = parseDateValue(nextPayload.scheduled_date, 'scheduled_date')
@@ -311,10 +288,10 @@ const updateSchedule = async (req, res) => {
 const openSchedule = async (req, res) => {
   try {
     const schedule = await getScheduleRecord(req.params.id)
-
-    if (schedule.status === SCHEDULE_STATUSES.CLOSED) {
-      throw new DomainError(409, 'No se puede reabrir un cronograma cerrado')
-    }
+    assertScheduleActionAllowed({
+      action: SCHEDULE_ACTIONS.OPEN,
+      schedule,
+    })
 
     await schedule.update(
       withUpdateAudit(
@@ -347,10 +324,10 @@ const openSchedule = async (req, res) => {
 const closeSchedule = async (req, res) => {
   try {
     const schedule = await getScheduleRecord(req.params.id)
-
-    if (schedule.status === SCHEDULE_STATUSES.CLOSED) {
-      throw new DomainError(409, 'El cronograma ya esta cerrado')
-    }
+    assertScheduleActionAllowed({
+      action: SCHEDULE_ACTIONS.CLOSE,
+      schedule,
+    })
 
     await schedule.update(
       withUpdateAudit(

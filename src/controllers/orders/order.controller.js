@@ -1,6 +1,20 @@
 const { Op } = require('sequelize')
 
 const { ROLE_IDS, ROLE_NAMES } = require('../../auth/roles')
+const {
+  ACTIVE_ORDER_STATUSES,
+  ORDER_ACTIONS,
+  assertNoManualOrderCreateTransitionFields,
+  assertOrderActionAllowed,
+  assertOrderCreateAllowed,
+  assertOrderUpdateAllowed,
+  buildAssignOrderPayload,
+  buildCancelOrderPayload,
+  buildCompleteOrderPayload,
+  buildCreateOrderPayload,
+  buildStartOrderPayload,
+} = require('../../domain/operations/orderPolicy')
+const { DomainError, buildDomainErrorResponse } = require('../../domain/shared/domainError')
 const { Client, Equipment, Order, Request, User } = require('../../models')
 const { success, failure } = require('../../utils/apiResponse')
 const { handleRequestError } = require('../../utils/requestError')
@@ -9,23 +23,6 @@ const { pickAllowedFields, withCreateAudit, withUpdateAudit } = require('../../u
 const ORDER_CREATE_FIELDS = ['request_id', 'assigned_user_id', 'planned_start_at', 'diagnosis', 'closure_notes', 'received_satisfaction']
 const ORDER_UPDATE_FIELDS = ['assigned_user_id', 'planned_start_at', 'diagnosis', 'closure_notes', 'received_satisfaction']
 const ORDER_ASSIGN_FIELDS = ['assigned_user_id', 'planned_start_at']
-const ORDER_STATUSES = {
-  ASSIGNED: 'assigned',
-  IN_PROGRESS: 'in_progress',
-  COMPLETED: 'completed',
-  CANCELLED: 'cancelled',
-}
-
-class DomainError extends Error {
-  constructor(statusCode, message) {
-    super(message)
-    this.name = 'DomainError'
-    this.statusCode = statusCode
-  }
-}
-
-const buildDomainErrorResponse = (res, error, payloadKey) =>
-  failure(res, error.statusCode || 400, error.message, { [payloadKey]: null })
 
 const parseDateRange = (value, fieldName) => {
   if (!value) {
@@ -71,12 +68,6 @@ const validateAssignedUser = async (assignedUserId) => {
   }
 
   return assignedUser
-}
-
-const validateOrderTimes = (payload) => {
-  if (payload.started_at && payload.finished_at && payload.finished_at < payload.started_at) {
-    throw new DomainError(400, 'finished_at no puede ser anterior a started_at')
-  }
 }
 
 const hydrateOrder = async (order) => {
@@ -211,52 +202,33 @@ const getOrders = async (req, res) => {
 const createOrder = async (req, res) => {
   try {
     const payload = pickAllowedFields(req.body, ORDER_CREATE_FIELDS)
+    assertNoManualOrderCreateTransitionFields(req.body, 'POST')
 
     if (!payload.request_id) {
       throw new DomainError(400, 'La orden requiere request_id')
     }
 
     const request = await Request.findByPk(payload.request_id)
-
-    if (!request) {
-      throw new DomainError(400, 'La solicitud origen no existe')
-    }
-
-    if (request.status !== 'approved') {
-      throw new DomainError(409, 'La orden solo puede crearse desde una solicitud aprobada')
-    }
+    assertOrderCreateAllowed({
+      request,
+      activeOrderExists: false,
+    })
 
     const activeOrder = await Order.findOne({
       where: {
         request_id: request.id,
         status: {
-          [Op.in]: [ORDER_STATUSES.ASSIGNED, ORDER_STATUSES.IN_PROGRESS],
+          [Op.in]: ACTIVE_ORDER_STATUSES,
         },
       },
     })
 
-    if (activeOrder) {
-      throw new DomainError(409, 'La solicitud ya tiene una orden activa')
-    }
+    assertOrderCreateAllowed({ request, activeOrderExists: Boolean(activeOrder) })
 
     await validateAssignedUser(payload.assigned_user_id)
 
     const orderCreate = await Order.create(
-      withCreateAudit(
-        {
-          request_id: request.id,
-          client_id: request.client_id,
-          equipment_id: request.equipment_id,
-          type: request.type,
-          assigned_user_id: payload.assigned_user_id || null,
-          planned_start_at: payload.planned_start_at || null,
-          diagnosis: payload.diagnosis || null,
-          closure_notes: payload.closure_notes || null,
-          received_satisfaction: payload.received_satisfaction ?? null,
-          status: ORDER_STATUSES.ASSIGNED,
-        },
-        req.auth
-      )
+      withCreateAudit(buildCreateOrderPayload({ request, payload }), req.auth)
     )
 
     return success(res, 201, 'Orden creada con exito', {
@@ -299,21 +271,13 @@ const getOrderById = async (req, res) => {
 const updateOrder = async (req, res) => {
   try {
     const order = await getOrderRecord(req.params.id, req.auth)
-
-    if (order.status === ORDER_STATUSES.COMPLETED || order.status === ORDER_STATUSES.CANCELLED) {
-      throw new DomainError(409, 'No se puede editar una orden completada o cancelada')
-    }
+    assertOrderUpdateAllowed({ order, payload: req.body })
 
     const payload = pickAllowedFields(req.body, ORDER_UPDATE_FIELDS)
 
     if (Object.prototype.hasOwnProperty.call(payload, 'assigned_user_id')) {
       await validateAssignedUser(payload.assigned_user_id)
     }
-
-    validateOrderTimes({
-      started_at: order.started_at,
-      finished_at: order.finished_at,
-    })
 
     await order.update(withUpdateAudit(payload, req.auth))
 
@@ -339,28 +303,18 @@ const updateOrder = async (req, res) => {
 const assignOrder = async (req, res) => {
   try {
     const order = await getOrderRecord(req.params.id, req.auth)
-
-    if (order.status === ORDER_STATUSES.COMPLETED || order.status === ORDER_STATUSES.CANCELLED) {
-      throw new DomainError(409, 'No se puede asignar una orden completada o cancelada')
-    }
+    assertOrderActionAllowed({
+      action: ORDER_ACTIONS.ASSIGN,
+      order,
+      auth: req.auth,
+    })
 
     const payload = pickAllowedFields(req.body, ORDER_ASSIGN_FIELDS)
-
-    if (!payload.assigned_user_id) {
-      throw new DomainError(400, 'La asignacion requiere assigned_user_id')
-    }
 
     await validateAssignedUser(payload.assigned_user_id)
 
     await order.update(
-      withUpdateAudit(
-        {
-          assigned_user_id: payload.assigned_user_id,
-          planned_start_at: payload.planned_start_at || order.planned_start_at,
-          status: order.status === ORDER_STATUSES.CANCELLED ? ORDER_STATUSES.CANCELLED : ORDER_STATUSES.ASSIGNED,
-        },
-        req.auth
-      )
+      withUpdateAudit(buildAssignOrderPayload({ payload, order }), req.auth)
     )
 
     return success(res, 200, 'Orden asignada con exito', {
@@ -385,27 +339,14 @@ const assignOrder = async (req, res) => {
 const startOrder = async (req, res) => {
   try {
     const order = await getOrderRecord(req.params.id, req.auth)
-
-    if (order.status !== ORDER_STATUSES.ASSIGNED) {
-      throw new DomainError(409, 'Solo se pueden iniciar ordenes asignadas')
-    }
-
-    if (!order.assigned_user_id) {
-      throw new DomainError(409, 'La orden debe tener un tecnico asignado antes de iniciar')
-    }
-
-    if (req.auth.roleName === ROLE_NAMES.TECNICO && order.assigned_user_id !== req.auth.userId) {
-      throw new DomainError(403, 'Solo el tecnico asignado puede iniciar esta orden')
-    }
+    assertOrderActionAllowed({
+      action: ORDER_ACTIONS.START,
+      order,
+      auth: req.auth,
+    })
 
     await order.update(
-      withUpdateAudit(
-        {
-          status: ORDER_STATUSES.IN_PROGRESS,
-          started_at: req.body.started_at || new Date(),
-        },
-        req.auth
-      )
+      withUpdateAudit(buildStartOrderPayload({ startedAt: req.body.started_at }), req.auth)
     )
 
     return success(res, 200, 'Orden iniciada con exito', {
@@ -430,63 +371,14 @@ const startOrder = async (req, res) => {
 const completeOrder = async (req, res) => {
   try {
     const order = await getOrderRecord(req.params.id, req.auth)
-
-    if (order.status !== ORDER_STATUSES.IN_PROGRESS) {
-      throw new DomainError(409, 'Solo se pueden completar ordenes en ejecucion')
-    }
-
-    if (req.auth.roleName === ROLE_NAMES.TECNICO && order.assigned_user_id !== req.auth.userId) {
-      throw new DomainError(403, 'Solo el tecnico asignado puede completar esta orden')
-    }
-
-    const completionPayload = {
-      finished_at: req.body.finished_at ? new Date(req.body.finished_at) : new Date(),
-      worked_hours: req.body.worked_hours,
-      work_description: req.body.work_description?.trim(),
-      closure_notes: req.body.closure_notes ?? order.closure_notes,
-      diagnosis: req.body.diagnosis ?? order.diagnosis,
-      received_satisfaction: req.body.received_satisfaction ?? order.received_satisfaction,
-      status: ORDER_STATUSES.COMPLETED,
-    }
-
-    if (!completionPayload.work_description) {
-      throw new DomainError(400, 'El cierre requiere work_description')
-    }
-
-    if (!order.assigned_user_id) {
-      throw new DomainError(409, 'La orden debe tener un tecnico asignado')
-    }
-
-    if (!order.started_at) {
-      throw new DomainError(409, 'La orden debe tener started_at antes de completarse')
-    }
-
-    if (completionPayload.worked_hours == null) {
-      throw new DomainError(400, 'El cierre requiere worked_hours')
-    }
-
-    if (Number(completionPayload.worked_hours) < 0) {
-      throw new DomainError(400, 'worked_hours debe ser un numero positivo')
-    }
-
-    validateOrderTimes({
-      started_at: order.started_at,
-      finished_at: completionPayload.finished_at,
+    assertOrderActionAllowed({
+      action: ORDER_ACTIONS.COMPLETE,
+      order,
+      auth: req.auth,
     })
 
     await order.update(
-      withUpdateAudit(
-        {
-          finished_at: completionPayload.finished_at,
-          worked_hours: Number(completionPayload.worked_hours),
-          work_description: completionPayload.work_description,
-          closure_notes: completionPayload.closure_notes,
-          diagnosis: completionPayload.diagnosis,
-          received_satisfaction: completionPayload.received_satisfaction,
-          status: completionPayload.status,
-        },
-        req.auth
-      )
+      withUpdateAudit(buildCompleteOrderPayload({ body: req.body, order }), req.auth)
     )
 
     return success(res, 200, 'Orden completada con exito', {
@@ -511,23 +403,14 @@ const completeOrder = async (req, res) => {
 const cancelOrder = async (req, res) => {
   try {
     const order = await getOrderRecord(req.params.id, req.auth)
-
-    if (order.status === ORDER_STATUSES.COMPLETED) {
-      throw new DomainError(409, 'No se puede cancelar una orden completada')
-    }
-
-    if (!req.body.cancel_reason?.trim()) {
-      throw new DomainError(400, 'La cancelacion requiere cancel_reason')
-    }
+    assertOrderActionAllowed({
+      action: ORDER_ACTIONS.CANCEL,
+      order,
+      auth: req.auth,
+    })
 
     await order.update(
-      withUpdateAudit(
-        {
-          status: ORDER_STATUSES.CANCELLED,
-          cancel_reason: req.body.cancel_reason.trim(),
-        },
-        req.auth
-      )
+      withUpdateAudit(buildCancelOrderPayload({ body: req.body }), req.auth)
     )
 
     return success(res, 200, 'Orden cancelada con exito', {
