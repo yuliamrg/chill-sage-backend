@@ -92,7 +92,7 @@ docs/
 
 Arquitectura actual:
 
-- `src/app.js` construye Express, conecta DB, asegura esquema operativo y monta `/api`
+- `src/app.js` construye Express, valida conexion a DB, valida configuracion JWT y monta `/api`
 - `src/routes/` separa rutas por recurso
 - `src/controllers/` concentra logica HTTP y reglas de negocio actuales
 - `src/models/` define Sequelize y asociaciones
@@ -116,7 +116,7 @@ Orden recomendado:
 
 - Node.js 18+ recomendado
 - MySQL disponible
-- dependencias instaladas con `npm install`
+- dependencias instaladas con `pnpm install` o `npm install`
 
 ## Variables De Entorno
 
@@ -126,9 +126,13 @@ Orden recomendado:
 - `DB_PASSWORD`: contrasena de base de datos
 - `DB_HOSTNAME`: host de MySQL. Default `127.0.0.1`
 - `DB_PORT`: puerto de MySQL. Default `3306`
-- `DB_SYNC`: si vale `true`, ejecuta `db.sync({ force: false })`
+- `DB_SYNC`: si vale `true`, `npm run db:ensure-schema` ejecuta `db.sync({ force: false })` antes del ensure operativo
 - `JWT_SECRET`: secreto para firmar tokens
 - `JWT_EXPIRES_IN`: duracion del access token. Default `8h`
+- `TEST_ADMIN_USERNAME`, `TEST_ADMIN_EMAIL`, `TEST_ADMIN_PASSWORD`: credenciales del usuario de prueba `admin`
+- `TEST_SOLICITANTE_USERNAME`, `TEST_SOLICITANTE_EMAIL`, `TEST_SOLICITANTE_PASSWORD`: credenciales del usuario de prueba `solicitante`
+- `TEST_PLANEADOR_USERNAME`, `TEST_PLANEADOR_EMAIL`, `TEST_PLANEADOR_PASSWORD`: credenciales del usuario de prueba `planeador`
+- `TEST_TECNICO_USERNAME`, `TEST_TECNICO_EMAIL`, `TEST_TECNICO_PASSWORD`: credenciales del usuario de prueba `tecnico`
 
 Referencia:
 
@@ -137,8 +141,9 @@ Referencia:
 ## Instalacion
 
 ```bash
-npm install
-npm start
+pnpm install
+cp .env.example .env
+pnpm start
 ```
 
 Crea `.env` a partir de `.env.example` antes de iniciar.
@@ -148,10 +153,32 @@ Crea `.env` a partir de `.env.example` antes de iniciar.
 Comportamiento actual:
 
 - valida conexion con `db.authenticate()` antes de abrir el puerto HTTP
-- sincroniza modelos solo si `DB_SYNC=true`
-- asegura roles base `admin`, `solicitante`, `planeador` y `tecnico`
-- ejecuta bootstrap de esquema operativo para columnas y tabla relacional de cronogramas
+- inicializa asociaciones Sequelize
+- valida que `JWT_SECRET` exista antes de aceptar trafico
 - monta la API bajo `/api`
+
+`npm run start` ya no modifica esquema ni crea datos base.
+
+## Bootstrap Manual
+
+Cuando necesitas preparar base de datos o datos de autenticacion, usa scripts dedicados:
+
+```bash
+pnpm run db:ensure-schema
+pnpm run db:bootstrap-auth
+```
+
+Que hace cada uno:
+
+- `db:ensure-schema`: autentica DB, inicializa asociaciones, ejecuta `db.sync({ force: false })` solo si `DB_SYNC=true` y luego corre `ensureOperationalSchema()`
+- `db:bootstrap-auth`: autentica DB, asegura roles base y crea o actualiza usuarios de prueba por rol
+
+Flujo recomendado para una base nueva:
+
+1. configurar `.env`
+2. correr `pnpm run db:ensure-schema`
+3. correr `pnpm run db:bootstrap-auth`
+4. correr `pnpm start`
 
 ## API
 

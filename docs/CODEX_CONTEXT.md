@@ -52,6 +52,22 @@ Patron dominante actual:
 - enriquecimientos manuales para frontend
 - tests de integracion HTTP para contrato y permisos
 
+## Arranque Real
+
+`npm run start` hoy hace solo lo necesario para servir la API:
+
+- autentica conexion a MySQL
+- inicializa asociaciones Sequelize
+- valida configuracion JWT
+- levanta Express
+
+No ejecuta bootstrap de esquema, roles ni usuarios de prueba.
+
+Cuando eso se requiere, el repo expone scripts manuales:
+
+- `npm run db:ensure-schema`
+- `npm run db:bootstrap-auth`
+
 ## Restricciones Reales Del Codigo
 
 - hay autenticacion JWT Bearer

@@ -55,3 +55,12 @@ docs/
 - `engineering/` describe riesgos, brechas y endurecimiento pendiente.
 
 Si hay conflicto entre documentos, para desarrollar sobre este repo manda el contrato real en `contracts/`.
+
+## Nota Operativa
+
+El backend ya no ejecuta bootstrap de esquema ni de autenticacion durante `npm run start`.
+
+Para preparar entorno de desarrollo:
+
+- usar `npm run db:ensure-schema` para esquema operativo
+- usar `npm run db:bootstrap-auth` para roles y usuarios de prueba
