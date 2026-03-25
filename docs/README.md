@@ -23,6 +23,7 @@ docs/
   contracts/
     FRONTEND_API_SERVICES.md
   engineering/
+    CANONICAL_SCHEMA.md
     REVIEW.md
     HARDENING_PLAN.md
   process/
@@ -35,7 +36,8 @@ docs/
 
 1. [CODEX_CONTEXT.md](/C:/Users/yulia/Documents/projects/chillsage/chillsage-backend/docs/CODEX_CONTEXT.md)
 2. [contracts/FRONTEND_API_SERVICES.md](/C:/Users/yulia/Documents/projects/chillsage/chillsage-backend/docs/contracts/FRONTEND_API_SERVICES.md)
-3. [engineering/REVIEW.md](/C:/Users/yulia/Documents/projects/chillsage/chillsage-backend/docs/engineering/REVIEW.md)
+3. [engineering/CANONICAL_SCHEMA.md](/C:/Users/yulia/Documents/projects/chillsage/chillsage-backend/docs/engineering/CANONICAL_SCHEMA.md)
+4. [engineering/REVIEW.md](/C:/Users/yulia/Documents/projects/chillsage/chillsage-backend/docs/engineering/REVIEW.md)
 
 ### Para entender el producto objetivo
 
@@ -52,6 +54,7 @@ docs/
 
 - `context/` describe el producto objetivo.
 - `contracts/` describe la API real implementada hoy.
+- `engineering/CANONICAL_SCHEMA.md` define el esquema oficial persistente del backend.
 - `engineering/` describe riesgos, brechas y endurecimiento pendiente.
 
 Si hay conflicto entre documentos, para desarrollar sobre este repo manda el contrato real en `contracts/`.

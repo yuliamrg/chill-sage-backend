@@ -108,9 +108,10 @@ Orden recomendado:
 
 1. [docs/CODEX_CONTEXT.md](/C:/Users/yulia/Documents/projects/chillsage/chillsage-backend/docs/CODEX_CONTEXT.md)
 2. [docs/contracts/FRONTEND_API_SERVICES.md](/C:/Users/yulia/Documents/projects/chillsage/chillsage-backend/docs/contracts/FRONTEND_API_SERVICES.md)
-3. [docs/context/CONTEXTO_PRODUCTO_CHILLSAGE.md](/C:/Users/yulia/Documents/projects/chillsage/chillsage-backend/docs/context/CONTEXTO_PRODUCTO_CHILLSAGE.md)
-4. [docs/context/ESPECIFICACION_FUNCIONAL_MODULOS_CHILLSAGE.md](/C:/Users/yulia/Documents/projects/chillsage/chillsage-backend/docs/context/ESPECIFICACION_FUNCIONAL_MODULOS_CHILLSAGE.md)
-5. [docs/engineering/REVIEW.md](/C:/Users/yulia/Documents/projects/chillsage/chillsage-backend/docs/engineering/REVIEW.md)
+3. [docs/engineering/CANONICAL_SCHEMA.md](/C:/Users/yulia/Documents/projects/chillsage/chillsage-backend/docs/engineering/CANONICAL_SCHEMA.md)
+4. [docs/context/CONTEXTO_PRODUCTO_CHILLSAGE.md](/C:/Users/yulia/Documents/projects/chillsage/chillsage-backend/docs/context/CONTEXTO_PRODUCTO_CHILLSAGE.md)
+5. [docs/context/ESPECIFICACION_FUNCIONAL_MODULOS_CHILLSAGE.md](/C:/Users/yulia/Documents/projects/chillsage/chillsage-backend/docs/context/ESPECIFICACION_FUNCIONAL_MODULOS_CHILLSAGE.md)
+6. [docs/engineering/REVIEW.md](/C:/Users/yulia/Documents/projects/chillsage/chillsage-backend/docs/engineering/REVIEW.md)
 
 ## Requisitos
 
@@ -158,6 +159,26 @@ Comportamiento actual:
 - monta la API bajo `/api`
 
 `npm run start` ya no modifica esquema ni crea datos base.
+
+## Esquema Oficial
+
+El esquema persistente oficial del backend usa nombres en ingles.
+
+Tablas canonicas:
+
+- `users`
+- `roles`
+- `profiles`
+- `clients`
+- `equipments`
+- `requests`
+- `orders`
+- `schedules`
+- `schedule_equipments`
+
+Referencia:
+
+- [docs/engineering/CANONICAL_SCHEMA.md](/C:/Users/yulia/Documents/projects/chillsage/chillsage-backend/docs/engineering/CANONICAL_SCHEMA.md)
 
 ## Bootstrap Manual
 
