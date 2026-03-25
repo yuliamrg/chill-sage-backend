@@ -5,9 +5,7 @@ const express = require('express')
 
 const db = require('./models/database/dbconnection')
 const { initializeModelAssociations } = require('./models')
-const { ensureOperationalSchema } = require('./models/database/ensureOperationalSchema')
 const routes = require('./routes/api.routes')
-const { ensureRoles } = require('./auth/bootstrapRoles')
 const { ensureJwtConfig } = require('./auth/jwt')
 const { failure } = require('./utils/apiResponse')
 const { logRequestError } = require('./utils/requestError')
@@ -42,14 +40,7 @@ const initializeApp = async () => {
     initializationPromise = (async () => {
       await db.authenticate()
       initializeModelAssociations()
-      await ensureOperationalSchema()
-
-      if (process.env.DB_SYNC === 'true') {
-        await db.sync({ force: false })
-      }
-
       ensureJwtConfig()
-      await ensureRoles()
 
       return app
     })().catch((error) => {

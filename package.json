@@ -4,6 +4,8 @@
   "description": "",
   "main": "index.js",
   "scripts": {
+    "db:bootstrap-auth": "node scripts/bootstrap-auth.js",
+    "db:ensure-schema": "node scripts/ensure-schema.js",
     "test": "jest --runInBand",
     "start": "node index.js"
   },
