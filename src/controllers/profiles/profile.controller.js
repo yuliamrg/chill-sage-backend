@@ -11,7 +11,7 @@ const getProfiles = async (req, res) => {
       profiles: profiles,
     })
   } catch (error) {
-    return failure(res, 500, 'Error al conectar con el controlador profile:' + error.message, {
+    return failure(res, 500, 'No fue posible obtener perfiles', {
       profiles: [],
     })
   }
@@ -28,7 +28,7 @@ const getProfileById = async (req, res) => {
 
     return success(res, 200, 'Perfil encontrado', { profile })
   } catch (error) {
-    return failure(res, 500, 'Error al obtener el perfil: ' + error.message, {
+    return failure(res, 500, 'No fue posible obtener el perfil', {
       profile: null,
     })
   }
@@ -94,7 +94,7 @@ const destroyProfile = async (req, res) => {
       profile,
     })
   } catch (error) {
-    return failure(res, 500, 'Error al eliminar el perfil: ' + error.message, {
+    return failure(res, 500, 'No fue posible eliminar el perfil', {
       profile: null,
     })
   }

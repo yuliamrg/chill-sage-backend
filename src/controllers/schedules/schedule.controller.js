@@ -176,7 +176,7 @@ const getSchedules = async (req, res) => {
       return buildDomainErrorResponse(res, error, 'schedules')
     }
 
-    return failure(res, 500, 'Error al conectar con el controlador schedule:' + error.message, {
+    return failure(res, 500, 'No fue posible obtener cronogramas', {
       schedules: [],
     })
   }
@@ -234,7 +234,7 @@ const getScheduleById = async (req, res) => {
       return buildDomainErrorResponse(res, error, 'schedule')
     }
 
-    return failure(res, 500, 'Error al obtener el cronograma: ' + error.message, {
+    return failure(res, 500, 'No fue posible obtener el cronograma', {
       schedule: null,
     })
   }
@@ -372,7 +372,7 @@ const destroySchedule = async (req, res) => {
       schedule: await hydrateSchedule(schedule),
     })
   } catch (error) {
-    return failure(res, 500, 'Error al eliminar el cronograma: ' + error.message, {
+    return failure(res, 500, 'No fue posible eliminar el cronograma', {
       schedule: null,
     })
   }

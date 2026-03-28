@@ -2,197 +2,306 @@
 
 Documento operativo para endurecer el backend antes de exponerlo a clientes externos o llevarlo a produccion.
 
-Fecha de referencia: `2026-03-22`
+Fecha de referencia inicial: `2026-03-22`
+Ultima actualizacion: `2026-03-28`
 
-## Objetivo
+## Como Usar Este Documento
 
-Reducir los riesgos mas criticos del proyecto actual sin romper innecesariamente el contrato operativo ya implementado.
+Este plan ahora se mantiene como checklist viva.
 
-## Estado De Ejecucion
+Reglas de uso:
 
-Avance actual sobre este plan:
+- `[x]` completado y verificado en codigo o configuracion
+- `[-]` avance parcial, implementado solo en parte o con brechas abiertas
+- `[ ]` pendiente
 
-- autenticacion JWT implementada
-- autorizacion por rol implementada en rutas
-- listas blancas de campos y proteccion de auditoria en recursos criticos
-- flujo operativo base implementado en `requests`, `orders` y `schedules`
-- reglas de estado y acciones de negocio centralizadas para `requests`, `orders` y `schedules`
-- pruebas de integracion de login, autorizacion y modulos operativos implementadas
+En cada avance se debe actualizar:
 
-Pendiente de este plan:
+1. el estado del item
+2. la evidencia concreta
+3. la brecha restante si aplica
+4. la fecha de ultima actualizacion
 
-- rotacion de secretos y saneamiento de repositorio
-- rate limiting de login
-- CORS restringido por entorno
-- mayor endurecimiento de errores
-- migraciones versionadas
-- ampliacion adicional de cobertura fuera del nucleo operativo
+## Resumen Ejecutivo
 
-## Prioridad 0
+Estado general estimado del plan: `parcial`, con avance aproximado de `60-70%`.
 
-### 1. Sacar secretos del repositorio y rotarlos
+Lo ya resuelto en el backend actual:
 
-Problema actual:
+- [x] autenticacion JWT implementada
+- [x] autorizacion por rol implementada en rutas
+- [x] listas blancas de campos y proteccion de auditoria en recursos criticos
+- [x] flujo operativo base implementado en `requests`, `orders` y `schedules`
+- [x] reglas de estado y acciones de negocio centralizadas para `requests`, `orders` y `schedules`
+- [x] pruebas de integracion de login, autorizacion y modulos operativos implementadas
 
-- `.env` no debe tratarse como artefacto compartible.
-- Si hubo credenciales reales versionadas, deben asumirse comprometidas.
+Lo aun pendiente o parcial:
 
-Acciones:
+- [-] secretos fuera del repo y rotacion confirmada
+- [x] rate limiting de login
+- [x] CORS restringido por entorno
+- [x] endurecimiento de errores
+- [ ] observabilidad minima
+- [ ] migraciones versionadas
+- [ ] paginacion y metadatos
+- [-] ampliacion adicional de cobertura fuera del nucleo operativo
 
-1. Rotar credenciales de base de datos y cualquier secreto expuesto.
-2. Mantener `.env` solo local y usar `.env.example` como referencia.
-3. Limpiar historial si el repositorio va a circular fuera del equipo actual.
-4. Documentar configuracion segura por entorno.
+## Checklist Operativa
 
-### 2. Endurecer autenticacion
+### Prioridad 0
 
-Estado actual:
+#### 1. Sacar secretos del repositorio y rotarlos
 
-- resuelto a nivel base con JWT Bearer
+Estado: `[-] parcial`
+
+Checklist:
+
+- [-] `.env` mantenido solo local
+- [x] `.env.example` disponible como referencia
+- [ ] credenciales rotadas si hubo exposicion previa
+- [ ] historial saneado si el repositorio va a circular fuera del equipo actual
+- [ ] configuracion segura por entorno documentada
+
+Evidencia actual:
+
+- `.env` existe localmente y no esta versionado
+- `.env.example` esta versionado
+- `.gitignore` incluye `.env`
+
+Brecha actual:
+
+- No hay evidencia en el repo de rotacion real de secretos ni de saneamiento de historial
+
+#### 2. Endurecer autenticacion
+
+Estado: `[-] parcial`
+
+Checklist:
+
+- [x] login con JWT Bearer implementado
+- [x] todo `/api` salvo login exige autenticacion
+- [x] `JWT_SECRET` es obligatorio al iniciar
+- [x] `JWT_EXPIRES_IN` configurable por entorno
+- [x] rate limiting de login
+- [ ] refresh token si frontend lo necesita
+
+Evidencia actual:
+
 - `POST /api/users/login` devuelve `access_token`, `token_type`, `expires_in` y `user`
-- todo `/api` salvo login exige autenticacion
+- `requireAuth` protege el resto de `/api`
+- la configuracion JWT falla si no existe `JWT_SECRET`
 
-Acciones:
+Brecha actual:
 
-1. mantener `JWT_SECRET` y `JWT_EXPIRES_IN` por entorno
-2. agregar rate limiting a login
-3. evaluar refresh token si el frontend lo necesita
+- Sigue siendo un limiter en memoria local. Si se despliega en multiples instancias o detras de proxy complejo, conviene moverlo a un store compartido
 
-### 3. Endurecer autorizacion
+#### 3. Endurecer autorizacion
 
-Estado actual:
+Estado: `[-] parcial`
 
-- resuelto a nivel base por rol y ruta
-- hay restricciones operativas adicionales por ownership en `requests` y `orders`
+Checklist:
 
-Acciones:
+- [x] autorizacion base por rol y ruta
+- [x] restricciones operativas adicionales por ownership en `requests` y `orders`
+- [x] `DELETE` restringido a `admin` en modulos operativos
+- [ ] matriz de acceso por recurso y accion documentada y mantenida
+- [ ] alcance por cliente reforzado en recursos maestros
+- [ ] revision adicional de operaciones administrativas sensibles
 
-1. mantener actualizada la matriz de acceso por recurso y accion
-2. reforzar alcance por cliente en recursos maestros
-3. revisar eliminaciones y operaciones administrativas sensibles
+Evidencia actual:
 
-### 4. Endurecer validacion de payloads
+- el middleware de autenticacion y roles esta operativo
+- el nucleo operativo aplica restricciones de ownership
 
-Estado actual:
+Brecha actual:
 
-- los recursos operativos ya usan listas blancas y validaciones de dominio
+- `users`, `clients`, `equipments` y otros recursos maestros aun requieren permisos mas finos y mayor aislamiento por cliente
 
-Acciones:
+#### 4. Endurecer validacion de payloads
 
-1. extender el mismo patron a recursos restantes
-2. rechazar campos desconocidos donde aun no se haga
-3. validar relaciones y enums de forma consistente
-4. consolidar DTOs o helpers de validacion si crece la complejidad
+Estado: `[-] parcial`
 
-### 5. Endurecer reglas de estado y acciones por endpoint
+Checklist:
 
-Estado actual:
+- [x] `requests`, `orders` y `schedules` usan listas blancas y validaciones de dominio
+- [-] `users`, `clients` y `equipments` usan listas blancas basicas
+- [ ] rechazar explicitamente campos desconocidos donde hoy se silencian
+- [ ] validar relaciones y enums de forma consistente en recursos no operativos
+- [ ] consolidar DTOs o helpers si la complejidad crece
 
-- resuelto para `requests`, `orders` y `schedules` con politicas compartidas de dominio
-- las transiciones criticas viven en acciones explicitas y no en `PUT`
+Evidencia actual:
 
-Acciones:
+- el patron de `pickAllowedFields` ya esta extendido a varios controladores
+- el mayor endurecimiento de negocio vive en el nucleo operativo
 
-1. mantener centralizadas las politicas de transicion, permisos y precondiciones
-2. impedir cambios de `status` y campos de accion desde `POST` o `PUT` genericos
-3. exigir secuencia valida de negocio por endpoint y bloquear repeticiones
-4. reutilizar el patron en modulos futuros con estado operativo
+Brecha actual:
 
-## Prioridad 1
+- en recursos maestros aun predomina whitelisting basico sin validaciones mas ricas ni rechazo explicito de campos sobrantes
 
-### 6. Endurecer manejo de errores
+#### 5. Endurecer reglas de estado y acciones por endpoint
 
-Problema actual:
+Estado: `[x] completado`
 
-- aun se filtran mensajes internos en algunos controladores
+Checklist:
 
-Acciones:
+- [x] politicas de transicion, permisos y precondiciones centralizadas
+- [x] cambios criticos de estado viven en endpoints de accion y no en `PUT`
+- [x] secuencia de negocio valida exigida en `requests`, `orders` y `schedules`
+- [x] bloqueo de repeticiones y transiciones invalidas en flujo operativo
 
-1. implementar o fortalecer middleware global de errores
-2. responder mensajes mas controlados al cliente
-3. dejar detalle tecnico en logs
-4. unificar criterios para `400`, `401`, `403`, `404`, `409` y `500`
+Evidencia actual:
 
-### 7. Restringir CORS
+- el dominio operativo ya no depende de CRUD plano para transiciones criticas
 
-Problema actual:
+Brecha actual:
 
-- la configuracion sigue abierta para desarrollo general
+- reutilizar el patron en modulos futuros con estado operativo
 
-Acciones:
+### Prioridad 1
 
-1. definir lista de origins por entorno
-2. permitir solo frontends aprobados
-3. documentar variables de entorno necesarias
+#### 6. Endurecer manejo de errores
 
-### 8. Mejorar observabilidad
+Estado: `[x] completado`
 
-Acciones:
+Checklist:
 
-1. agregar logger estructurado
-2. incorporar request id por peticion
-3. registrar eventos de autenticacion y errores relevantes
-4. crear endpoint de health check
+- [x] existe middleware global para JSON invalido y errores no manejados
+- [x] existe normalizacion parcial de errores Sequelize
+- [x] respuestas cliente sin filtrar `error.message` interno
+- [-] criterios totalmente unificados para `400`, `401`, `403`, `404`, `409` y `500`
+- [x] logging tecnico desacoplado de la respuesta al cliente
 
-## Prioridad 2
+Evidencia actual:
 
-### 9. Ampliar pruebas automatizadas
+- hay middleware global de errores
+- existe `handleRequestError` para varios controladores
 
-Estado actual:
+Brecha actual:
 
-- existen suites de login, autorizacion y flujos operativos
+- ya no se exponen mensajes internos de excepcion en respuestas `500`, pero aun queda margen para consolidar completamente todos los criterios de error HTTP
 
-Acciones:
+#### 7. Restringir CORS
 
-1. ampliar cobertura a usuarios, clientes y equipos
-2. agregar mas escenarios negativos de validacion
-3. automatizar ejecucion en CI
+Estado: `[x] completado`
 
-### 10. Formalizar gestion del esquema
+Checklist:
 
-Problema actual:
+- [x] lista de origins definida por entorno
+- [x] permitir solo frontends aprobados
+- [x] variables de entorno documentadas
 
-- existe bootstrap de esquema operativo, pero no migraciones versionadas
+Evidencia actual:
 
-Acciones:
+- CORS ahora depende de `CORS_ORIGINS`
+- requests con `Origin` no permitido son rechazadas
 
-1. adoptar migraciones
-2. definir seeders para catalogos base
-3. reducir dependencia de cambios automaticos al iniciar
+Brecha actual:
 
-### 11. Agregar paginacion y metadatos
+- mantener alineada la lista de origins con los frontends reales por entorno
 
-Problema actual:
+#### 8. Mejorar observabilidad
+
+Estado: `[ ] pendiente`
+
+Checklist:
+
+- [ ] logger estructurado
+- [ ] request id por peticion
+- [ ] eventos relevantes de autenticacion y error registrados de forma consistente
+- [ ] endpoint de health check
+
+Evidencia actual:
+
+- solo hay `console.log` y `console.error`
+
+Brecha actual:
+
+- falta trazabilidad minima para operacion y diagnostico
+
+### Prioridad 2
+
+#### 9. Ampliar pruebas automatizadas
+
+Estado: `[-] parcial`
+
+Checklist:
+
+- [x] suites de login, autorizacion y flujos operativos existentes
+- [ ] cobertura adicional para `users`
+- [ ] cobertura adicional para `clients`
+- [ ] cobertura adicional para `equipments`
+- [ ] mas escenarios negativos de validacion y ownership
+- [ ] ejecucion automatizada en CI
+
+Evidencia actual:
+
+- existen pruebas de integracion para login, autorizacion y flujo operativo
+- `pnpm test` ejecutado con exito el `2026-03-28`: `5` suites y `19` tests en verde
+
+Brecha actual:
+
+- la cobertura sigue concentrada en el nucleo operativo
+
+#### 10. Formalizar gestion del esquema
+
+Estado: `[ ] pendiente`
+
+Checklist:
+
+- [ ] adoptar migraciones versionadas
+- [ ] definir seeders para catalogos base
+- [ ] reducir dependencia de cambios automaticos al iniciar
+
+Evidencia actual:
+
+- existe bootstrap de esquema operativo e indices
+
+Brecha actual:
+
+- el proyecto sigue dependiendo de `ensure schema` en vez de una disciplina de migraciones
+
+#### 11. Agregar paginacion y metadatos
+
+Estado: `[ ] pendiente`
+
+Checklist:
+
+- [ ] agregar `page`, `limit` y `sort`
+- [ ] definir maximo de resultados
+- [ ] devolver metadata de paginacion
+
+Evidencia actual:
 
 - los listados siguen usando `findAll()` sin limite
 
-Acciones:
+Brecha actual:
 
-1. agregar `page`, `limit` y `sort`
-2. definir maximo de resultados
-3. devolver metadata de paginacion
+- riesgo de respuestas grandes, tiempos altos y consumo innecesario de memoria
 
 ## Orden Recomendado De Ejecucion
 
 1. secretos y rotacion
 2. rate limiting y endurecimiento de login
-3. reglas de estado y acciones por endpoint
-4. manejo de errores
-5. CORS
-6. migraciones
-7. ampliacion de tests
-8. observabilidad
-9. paginacion
+3. manejo de errores
+4. CORS
+5. migraciones
+6. ampliacion de tests
+7. observabilidad
+8. paginacion
 
 ## Criterio Minimo Para Decir "Listo Para Cliente"
 
 Como minimo deberian estar completos:
 
-- secretos fuera del repo
-- autenticacion funcional
-- autorizacion por rol y alcance suficiente
-- validacion de payloads en todos los recursos criticos
-- reglas de estado y acciones criticas controladas por endpoint
-- errores endurecidos
-- CORS restringido
-- pruebas basicas de login y de flujos operativos criticos
+- [ ] secretos fuera del repo con rotacion confirmada
+- [x] autenticacion funcional
+- [-] autorizacion por rol y alcance suficiente
+- [-] validacion de payloads en todos los recursos criticos
+- [x] reglas de estado y acciones criticas controladas por endpoint
+- [x] errores endurecidos
+- [x] CORS restringido
+- [x] pruebas basicas de login y de flujos operativos criticos
+
+## Regla De Mantenimiento
+
+Cada vez que avancemos en un item de este plan, este archivo debe actualizarse en el mismo cambio o inmediatamente despues.

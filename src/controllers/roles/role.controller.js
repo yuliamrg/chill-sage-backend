@@ -11,7 +11,7 @@ const getRoles = async (req, res) => {
       roles: roles,
     })
   } catch (error) {
-    return failure(res, 500, 'Error al conectar con el controlador role:' + error.message, {
+    return failure(res, 500, 'No fue posible obtener roles', {
       roles: [],
     })
   }
@@ -28,7 +28,7 @@ const getRoleById = async (req, res) => {
 
     return success(res, 200, 'Rol encontrado', { role })
   } catch (error) {
-    return failure(res, 500, 'Error al obtener el rol: ' + error.message, {
+    return failure(res, 500, 'No fue posible obtener el rol', {
       role: null,
     })
   }
@@ -94,7 +94,7 @@ const destroyRole = async (req, res) => {
       role,
     })
   } catch (error) {
-    return failure(res, 500, 'Error al eliminar el rol: ' + error.message, {
+    return failure(res, 500, 'No fue posible eliminar el rol', {
       role: null,
     })
   }

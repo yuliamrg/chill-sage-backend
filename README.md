@@ -130,6 +130,9 @@ Orden recomendado:
 - `DB_SYNC`: si vale `true`, `npm run db:ensure-schema` ejecuta `db.sync({ force: false })` antes del ensure operativo
 - `JWT_SECRET`: secreto para firmar tokens
 - `JWT_EXPIRES_IN`: duracion del access token. Default `8h`
+- `CORS_ORIGINS`: lista separada por comas con los origins permitidos para navegador
+- `LOGIN_RATE_LIMIT_WINDOW_MS`: ventana del rate limit de login en milisegundos. Default `900000`
+- `LOGIN_RATE_LIMIT_MAX`: maximo de intentos fallidos permitidos en la ventana. Default `5`
 - `TEST_ADMIN_USERNAME`, `TEST_ADMIN_EMAIL`, `TEST_ADMIN_PASSWORD`: credenciales del usuario de prueba `admin`
 - `TEST_SOLICITANTE_USERNAME`, `TEST_SOLICITANTE_EMAIL`, `TEST_SOLICITANTE_PASSWORD`: credenciales del usuario de prueba `solicitante`
 - `TEST_PLANEADOR_USERNAME`, `TEST_PLANEADOR_EMAIL`, `TEST_PLANEADOR_PASSWORD`: credenciales del usuario de prueba `planeador`
@@ -156,6 +159,8 @@ Comportamiento actual:
 - valida conexion con `db.authenticate()` antes de abrir el puerto HTTP
 - inicializa asociaciones Sequelize
 - valida que `JWT_SECRET` exista antes de aceptar trafico
+- restringe CORS a los origins definidos en `CORS_ORIGINS`
+- aplica rate limiting a `POST /api/users/login`
 - monta la API bajo `/api`
 
 `npm run start` ya no modifica esquema ni crea datos base.

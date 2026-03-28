@@ -1,18 +1,18 @@
 require('dotenv').config()
 
-const cors = require('cors')
 const express = require('express')
 
 const db = require('./models/database/dbconnection')
 const { initializeModelAssociations } = require('./models')
 const routes = require('./routes/api.routes')
 const { ensureJwtConfig } = require('./auth/jwt')
+const { buildCorsMiddleware, parseAllowedOrigins } = require('./security/cors')
 const { failure } = require('./utils/apiResponse')
 const { logRequestError } = require('./utils/requestError')
 
 const app = express()
 
-app.use(cors())
+app.use(buildCorsMiddleware())
 app.use(express.json())
 app.use('/api', routes)
 
@@ -30,7 +30,12 @@ app.use((err, req, res, next) => {
 
 app.use((err, req, res, next) => {
   logRequestError('http.unhandled', req, err)
-  return failure(res, err?.status || 500, err?.message || 'Unexpected server error', {})
+
+  if (err?.status && err.status < 500) {
+    return failure(res, err.status, err.message, {})
+  }
+
+  return failure(res, 500, 'Unexpected server error', {})
 })
 
 let initializationPromise = null
@@ -41,6 +46,10 @@ const initializeApp = async () => {
       await db.authenticate()
       initializeModelAssociations()
       ensureJwtConfig()
+
+      if (parseAllowedOrigins().length === 0) {
+        console.warn('CORS_ORIGINS is empty. Browser requests with Origin header will be rejected.')
+      }
 
       return app
     })().catch((error) => {

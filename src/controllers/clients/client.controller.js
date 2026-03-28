@@ -11,7 +11,7 @@ const getClients = async (req, res) => {
       clients: clients,
     })
   } catch (error) {
-    return failure(res, 500, 'Error al conectar con el controlador client:' + error.message, {
+    return failure(res, 500, 'No fue posible obtener clientes', {
       clients: [],
     })
   }
@@ -48,7 +48,7 @@ const getClientById = async (req, res) => {
       client,
     })
   } catch (error) {
-    return failure(res, 500, 'Error al obtener el cliente: ' + error.message, {
+    return failure(res, 500, 'No fue posible obtener el cliente', {
       client: null,
     })
   }
@@ -96,7 +96,7 @@ const destroyClient = async (req, res) => {
       client,
     })
   } catch (error) {
-    return failure(res, 500, 'Error al eliminar el cliente: ' + error.message, {
+    return failure(res, 500, 'No fue posible eliminar el cliente', {
       client: null,
     })
   }

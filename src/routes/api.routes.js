@@ -1,6 +1,7 @@
 const router = require('express').Router()
 const { requireAuth } = require('../auth/middleware')
 const { login } = require('../controllers/users/user.controller')
+const { buildLoginRateLimiter } = require('../security/rateLimit')
 
 const equipmentRouter = require('./equipments/equipment.routes')
 const userRouter = require('./users/user.routes')
@@ -11,7 +12,7 @@ const clientRouter = require('./clients/client.routes')
 const profileRouter = require('./profiles/profile.routes')
 const orderRouter = require('./orders/order.routes')
 
-router.post('/users/login', login)
+router.post('/users/login', buildLoginRateLimiter(), login)
 router.use(requireAuth)
 router.use('/users', userRouter)
 router.use('/clients', clientRouter)

@@ -254,7 +254,7 @@ const getRequests = async (req, res) => {
       return buildDomainErrorResponse(res, error, 'requests')
     }
 
-    return failure(res, 500, 'Error al conectar con el controlador request:' + error.message, {
+    return failure(res, 500, 'No fue posible obtener solicitudes', {
       requests: [],
     })
   }
@@ -295,7 +295,7 @@ const getRequestById = async (req, res) => {
       return buildDomainErrorResponse(res, error, 'request')
     }
 
-    return failure(res, 500, 'Error al obtener la solicitud: ' + error.message, {
+    return failure(res, 500, 'No fue posible obtener la solicitud', {
       request: null,
     })
   }
@@ -419,7 +419,7 @@ const destroyRequest = async (req, res) => {
       request: await enrichRequest(request),
     })
   } catch (error) {
-    return failure(res, 500, 'Error al eliminar la solicitud: ' + error.message, {
+    return failure(res, 500, 'No fue posible eliminar la solicitud', {
       request: null,
     })
   }

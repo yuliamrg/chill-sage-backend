@@ -193,7 +193,7 @@ const getOrders = async (req, res) => {
       return buildDomainErrorResponse(res, error, 'orders')
     }
 
-    return failure(res, 500, 'Error al conectar con el controlador order:' + error.message, {
+    return failure(res, 500, 'No fue posible obtener ordenes', {
       orders: [],
     })
   }
@@ -262,7 +262,7 @@ const getOrderById = async (req, res) => {
       return buildDomainErrorResponse(res, error, 'order')
     }
 
-    return failure(res, 500, 'Error al obtener la orden: ' + error.message, {
+    return failure(res, 500, 'No fue posible obtener la orden', {
       order: null,
     })
   }
@@ -446,7 +446,7 @@ const destroyOrder = async (req, res) => {
       order: await hydrateOrder(order),
     })
   } catch (error) {
-    return failure(res, 500, 'Error al eliminar la orden: ' + error.message, {
+    return failure(res, 500, 'No fue posible eliminar la orden', {
       order: null,
     })
   }

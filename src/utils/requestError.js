@@ -12,6 +12,10 @@ const getValidationDetails = (error) => {
 
 const normalizeError = (error, fallbackMessage) => {
   const details = getValidationDetails(error)
+  const safeFallbackMessage =
+    typeof fallbackMessage === 'string' && fallbackMessage.trim()
+      ? fallbackMessage.replace(/[:\s]+$/, '').trim()
+      : 'No fue posible procesar la solicitud'
 
   switch (error?.name) {
     case 'SequelizeUniqueConstraintError':
@@ -35,10 +39,16 @@ const normalizeError = (error, fallbackMessage) => {
     default:
       return {
         statusCode: 500,
-        msg: `${fallbackMessage}${error?.message ? error.message : 'Error no identificado'}`,
+        msg: safeFallbackMessage,
         details,
       }
   }
+}
+
+const buildHttpError = (status, message) => {
+  const error = new Error(message)
+  error.status = status
+  return error
 }
 
 const logRequestError = (context, req, error) => {
@@ -67,6 +77,7 @@ const handleRequestError = ({ context, req, res, error, fallbackMessage, payload
 }
 
 module.exports = {
+  buildHttpError,
   handleRequestError,
   logRequestError,
 }

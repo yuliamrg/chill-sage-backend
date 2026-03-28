@@ -28,7 +28,7 @@ const getEquipments = async (req, res) => {
       equipments: hydratedEquipments,
     })
   } catch (error) {
-    return failure(res, 500, 'Error al conectar con el controlador equipment:' + error.message, {
+    return failure(res, 500, 'No fue posible obtener equipos', {
       equipments: [],
     })
   }
@@ -47,7 +47,7 @@ const getEquipmentById = async (req, res) => {
       equipment: await enrichEquipment(equipment),
     })
   } catch (error) {
-    return failure(res, 500, 'Error al obtener el equipo: ' + error.message, {
+    return failure(res, 500, 'No fue posible obtener el equipo', {
       equipment: null,
     })
   }
@@ -113,7 +113,7 @@ const destroyEquipment = async (req, res) => {
       equipment: await enrichEquipment(equipment),
     })
   } catch (error) {
-    return failure(res, 500, 'Error al eliminar el equipo: ' + error.message, {
+    return failure(res, 500, 'No fue posible eliminar el equipo', {
       equipment: null,
     })
   }

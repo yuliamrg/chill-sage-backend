@@ -92,7 +92,7 @@ const login = async (req, res) => {
     })
   } catch (error) {
     logRequestError('users.login', req, error)
-    return failure(res, 500, 'Error al iniciar sesion: ' + error.message, {
+    return failure(res, 500, 'No fue posible iniciar sesion', {
       user: null,
     })
   }
@@ -106,7 +106,7 @@ const getUsers = async (req, res) => {
       users: hydratedUsers,
     })
   } catch (error) {
-    return failure(res, 500, 'Error al conectar con el controlador users:' + error.message, {
+    return failure(res, 500, 'No fue posible obtener usuarios', {
       users: [],
     })
   }
@@ -125,7 +125,7 @@ const getUserById = async (req, res) => {
       user: await enrichUser(user),
     })
   } catch (error) {
-    return failure(res, 500, 'Error al obtener el usuario: ' + error.message, {
+    return failure(res, 500, 'No fue posible obtener el usuario', {
       user: null,
     })
   }
@@ -239,7 +239,7 @@ const destroyUser = async (req, res) => {
       user: await enrichUser(user),
     })
   } catch (error) {
-    return failure(res, 500, 'Error al eliminar el usuario: ' + error.message, {
+    return failure(res, 500, 'No fue posible eliminar el usuario', {
       user: null,
     })
   }
