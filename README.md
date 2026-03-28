@@ -14,6 +14,7 @@ Lo que existe hoy:
 - autorizacion por rol
 - auditoria base con `user_created_id` y `user_updated_id`
 - contrato operativo real para `requests`, `orders` y `schedules`
+- reglas finas de validacion y permisos en `equipments`
 - filtros por query en modulos operativos
 - pruebas de integracion con `jest` y `supertest`
 - CORS restringido por entorno para clientes web
@@ -191,6 +192,11 @@ Cambio esperado en frontend:
 - conservar y reportar `X-Request-Id` cuando el usuario informe errores o fallos de integracion
 - verificar que `VITE_API_URL` o equivalente apunte al backend y que su origin este permitido por `CORS_ORIGINS`
 - si el frontend corre con `ng serve`, incluir `http://localhost:4200` y `http://127.0.0.1:4200` en `CORS_ORIGINS`
+- para `equipments`, no reutilizar exactamente el mismo formulario editable entre `admin` y `planeador` sin bloqueo de campos
+- ocultar `DELETE` de equipos para `planeador`
+- limitar `status` de equipos a `active`, `inactive`, `maintenance`, `retired`
+- validar que `use_end_at` no sea menor que `use_start_at`
+- no enviar `user_created_id` ni `user_updated_id` esperando controlar auditoria
 
 ## Esquema Oficial
 
@@ -304,6 +310,12 @@ Si cambias endpoints, payloads, permisos o campos del backend, actualiza en el m
 
 1. [docs/contracts/FRONTEND_API_SERVICES.md](./docs/contracts/FRONTEND_API_SERVICES.md)
 2. el consumidor en `../chillsage-frontend`
+
+Para `equipments`, el frontend debe revisar en cada cambio:
+
+- si `planeador` sigue teniendo formulario parcial o campos bloqueados para `name`, `type`, `brand`, `model`, `serial`, `code` y `client`
+- si `DELETE` sigue visible solo para `admin`
+- si los validadores de fechas y estados siguen alineados con el contrato backend
 
 ## Otros Documentos
 

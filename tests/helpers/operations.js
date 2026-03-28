@@ -79,6 +79,7 @@ const createTechUserFixture = async ({ adminUserId, suffix, password }) => {
 const trackRequest = (id) => track('requests', id)
 const trackOrder = (id) => track('orders', id)
 const trackSchedule = (id) => track('schedules', id)
+const trackEquipment = (id) => track('equipments', id)
 
 const cleanupTrackedFixtures = async () => {
   if (trackedIds.schedules.size) {
@@ -117,6 +118,7 @@ module.exports = {
   createTechUserFixture,
   getUserByUsername,
   trackOrder,
+  trackEquipment,
   trackRequest,
   trackSchedule,
   untrack,

@@ -38,7 +38,7 @@ Use this matrix when generating authorization tests. Verify the route file if th
 - `GET /:id` => `admin`, `planeador`, `tecnico`
 - `POST /` => `admin`, `planeador`
 - `PUT /:id` => `admin`, `planeador`
-- `DELETE /:id` => `admin`, `planeador`
+- `DELETE /:id` => `admin`
 
 ### `/api/equipments`
 

@@ -1,5 +1,13 @@
 const Equipment = require('../../models/Equipments/Equipment.model')
 const Client = require('../../models/Clients/Client.model')
+const {
+  assertEquipmentClientExists,
+  assertEquipmentRequiredFields,
+  assertEquipmentUpdateAllowed,
+  buildEquipmentPayload,
+  validateEquipmentPayload,
+} = require('../../domain/operations/equipmentPolicy')
+const { DomainError, buildDomainErrorResponse } = require('../../domain/shared/domainError')
 const { success, failure } = require('../../utils/apiResponse')
 const { PaginationQueryError, buildPaginationMeta, parsePaginationQuery } = require('../../utils/pagination')
 const { handleRequestError } = require('../../utils/requestError')
@@ -77,11 +85,20 @@ const getEquipmentById = async (req, res) => {
 
 const createEquipment = async (req, res) => {
   try {
-    const equipmentCreate = await Equipment.create(withCreateAudit(pickAllowedFields(req.body, EQUIPMENT_FIELDS), req.auth))
+    const payload = buildEquipmentPayload(pickAllowedFields(req.body, EQUIPMENT_FIELDS))
+    assertEquipmentRequiredFields(payload)
+    validateEquipmentPayload(payload)
+    await assertEquipmentClientExists(Client, payload.client)
+
+    const equipmentCreate = await Equipment.create(withCreateAudit(payload, req.auth))
     return success(res, 201, 'Equipo creado con exito', {
       equipment: await enrichEquipment(equipmentCreate),
     })
   } catch (error) {
+    if (error instanceof DomainError) {
+      return buildDomainErrorResponse(res, error, 'equipment')
+    }
+
     return handleRequestError({
       context: 'equipments.create',
       req,
@@ -96,22 +113,34 @@ const createEquipment = async (req, res) => {
 const updateEquipment = async (req, res) => {
   const { id } = req.params
   try {
-    const equipmentUpdate = await Equipment.update(withUpdateAudit(pickAllowedFields(req.body, EQUIPMENT_FIELDS), req.auth), {
-      where: {
-        id: id,
-      },
-    })
+    const equipment = await Equipment.findByPk(id)
 
-    if (equipmentUpdate[0] === 0) {
+    if (!equipment) {
       return failure(res, 404, 'Equipo no encontrado o no se realizaron cambios', { equipment: null })
     }
 
-    const updatedEquipment = await Equipment.findByPk(id)
+    const payload = buildEquipmentPayload(pickAllowedFields(req.body, EQUIPMENT_FIELDS))
+    const current = equipment.toJSON()
+    const nextPayload = {
+      ...current,
+      ...payload,
+    }
+
+    assertEquipmentRequiredFields(nextPayload)
+    validateEquipmentPayload(nextPayload)
+    await assertEquipmentClientExists(Client, nextPayload.client)
+    assertEquipmentUpdateAllowed({ equipment: current, payload, roleName: req.auth.roleName })
+
+    const equipmentUpdate = await equipment.update(withUpdateAudit(payload, req.auth))
 
     return success(res, 200, 'Equipo actualizado con exito', {
-      equipment: await enrichEquipment(updatedEquipment),
+      equipment: await enrichEquipment(equipmentUpdate),
     })
   } catch (error) {
+    if (error instanceof DomainError) {
+      return buildDomainErrorResponse(res, error, 'equipment')
+    }
+
     return handleRequestError({
       context: 'equipments.update',
       req,

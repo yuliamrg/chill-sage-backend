@@ -206,7 +206,6 @@ Los siguientes recursos siguen expuestos principalmente como CRUD:
 - `clients`
 - `roles`
 - `profiles`
-- `equipments`
 
 Rutas base:
 
@@ -374,6 +373,119 @@ Efectos:
 - `pending`: permitir `editar`, `approve` y `cancel` segun rol
 - `approved`: mostrar datos de revision y habilitar crear orden si el rol lo permite; bloquear `PUT`
 - `cancelled`: solo lectura; no ofrecer `approve`, `cancel` ni crear orden
+
+### Equipments
+
+`equipments` sigue siendo un recurso administrativo, pero ya no debe tratarse como CRUD libre en frontend.
+
+#### Endpoints
+
+- `GET /equipments`
+- `GET /equipments/:id`
+- `POST /equipments`
+- `PUT /equipments/:id`
+- `DELETE /equipments/:id`
+
+#### Campos de lectura
+
+- `id`
+- `name`
+- `type`
+- `location`
+- `brand`
+- `model`
+- `serial`
+- `code`
+- `alias`
+- `client`
+- `description`
+- `status`
+- `use_start_at`
+- `use_end_at`
+- `created_at`
+- `updated_at`
+- `user_created_id`
+- `user_updated_id`
+- `client_name`
+
+#### Campos permitidos en create
+
+```json
+{
+  "name": "Chiller piso 3",
+  "type": "cooling",
+  "location": "Cuarto tecnico",
+  "brand": "Carrier",
+  "model": "30XA",
+  "serial": "CH-30XA-001",
+  "code": "EQ-003",
+  "alias": "Chiller principal",
+  "client": 1,
+  "description": "Equipo principal de enfriamiento",
+  "status": "active",
+  "use_start_at": "2026-03-20T08:00:00.000Z",
+  "use_end_at": "2026-03-30T18:00:00.000Z"
+}
+```
+
+Reglas:
+
+- `name`, `serial`, `code`, `client` y `status` son obligatorios
+- strings obligatorios vacios o solo con espacios responden `400`
+- `client` debe referenciar un cliente existente
+- `status` solo acepta `active`, `inactive`, `maintenance` o `retired`
+- si se envian fechas, `use_end_at` no puede ser menor que `use_start_at`
+- `user_created_id` enviado por frontend se ignora; auditoria la define el backend
+
+#### Campos permitidos en update
+
+- `name`
+- `type`
+- `location`
+- `brand`
+- `model`
+- `serial`
+- `code`
+- `alias`
+- `client`
+- `description`
+- `status`
+- `use_start_at`
+- `use_end_at`
+
+Restriccion por rol:
+
+- `admin` puede editar todos los campos permitidos
+- `planeador` solo puede editar campos operativos: `location`, `alias`, `description`, `status`, `use_start_at`, `use_end_at`
+- `planeador` no puede cambiar datos maestros base: `name`, `type`, `brand`, `model`, `serial`, `code`, `client`
+- `user_updated_id` enviado por frontend se ignora; auditoria la define el backend
+
+#### Estados
+
+- `active`
+- `inactive`
+- `maintenance`
+- `retired`
+
+#### Reglas de acceso
+
+- `GET`: `admin`, `planeador`, `tecnico`
+- `POST`: `admin`, `planeador`
+- `PUT`: `admin`, `planeador`
+- `DELETE`: solo `admin`
+
+#### Reglas de negocio
+
+- `planeador` puede mantener datos operativos del equipo, pero no redefinir identidad maestra
+- `tecnico` conserva acceso de lectura; no tiene permisos de escritura
+- el frontend no debe asumir que todo `PUT /equipments/:id` permitido por rol puede mutar cualquier campo
+
+#### Guia de frontend por rol
+
+- `admin`: mostrar formulario completo de alta y edicion
+- `planeador`: mostrar formulario parcial o campos bloqueados para datos maestros base
+- `tecnico`: detalle y listados en solo lectura
+- ocultar `DELETE` para cualquier rol distinto de `admin`
 
 ### Orders
 
@@ -744,7 +856,7 @@ Detalle real:
 - `roles`: `GET` para `admin` y `planeador`; escritura solo `admin`
 - `profiles`: `GET` para `admin` y `planeador`; escritura solo `admin`
 - `clients`: lectura `admin`, `planeador`, `tecnico`; escritura `admin`, `planeador`
-- `equipments`: lectura `admin`, `planeador`, `tecnico`; escritura `admin`, `planeador`
+- `equipments`: lectura `admin`, `planeador`, `tecnico`; create/update `admin`, `planeador`; delete solo `admin`
 - `requests`: lectura `admin`, `planeador`, `tecnico`, `solicitante`; create `admin`, `planeador`, `solicitante`; update `admin`, `planeador`; approve/cancel `admin`, `planeador`; delete solo `admin`
 - `orders`: lectura `admin`, `planeador`, `tecnico`, `solicitante`; create/update/assign/cancel `admin`, `planeador`; start/complete `admin`, `planeador`, `tecnico`; delete solo `admin`
 - `schedules`: lectura `admin`, `planeador`, `tecnico`; create/update/open/close `admin`, `planeador`; delete solo `admin`
@@ -769,6 +881,12 @@ Puntos concretos a alinear en frontend con el hardening actual:
 - manejar `429` en login con UI de espera o mensaje de reintento
 - no depender de `error.message`, stacks o detalles internos en respuestas `500`
 - seguir enviando `Authorization: Bearer <token>` en todas las rutas privadas
+- dejar de tratar `equipments` como formulario de edicion totalmente libre para `planeador`
+- si existe una sola pantalla de edicion de equipos para `admin` y `planeador`, bloquear en UI `name`, `type`, `brand`, `model`, `serial`, `code` y `client` cuando el actor sea `planeador`
+- ocultar o deshabilitar `DELETE` de equipos para `planeador`
+- al crear o editar equipos, restringir `status` a `active`, `inactive`, `maintenance`, `retired`
+- validar en frontend que `use_end_at >= use_start_at` para evitar rechazos `400` evitables
+- no enviar `user_created_id` ni `user_updated_id` esperando controlar auditoria
 - quitar selects o inputs libres de `status` en `requests`, `orders` y `schedules`
 - modelar acciones de negocio como llamados dedicados a `approve`, `cancel`, `assign`, `start`, `complete`, `open` y `close`
 - deshabilitar botones de accion cuando el estado actual no permita la transicion para evitar `409`
@@ -781,6 +899,7 @@ Cambios que el frontend no necesita hacer:
 - no necesita migrar a cookies o sesion server-side
 - no necesita usar `username` para login; `email` sigue siendo el contrato preferido
 - no necesita cambiar payloads de `requests`, `orders` o `schedules` por el hardening reciente
+- no necesita crear endpoints nuevos para `equipments`; el ajuste es de permisos, validacion y comportamiento de UI
 
 ## Paginacion De Listados
 

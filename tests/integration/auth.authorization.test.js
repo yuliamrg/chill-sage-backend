@@ -58,6 +58,17 @@ describe('authorization boundaries', () => {
     expect(response.body.msg).toMatch(/No tienes permisos/i)
   })
 
+  test('rejects planeador when trying to delete equipments', async () => {
+    const planeadorToken = await getAuthHeader('planeador')
+    const response = await request(app)
+      .delete('/api/equipments/1')
+      .set('Authorization', planeadorToken)
+
+    expect(response.status).toBe(403)
+    expect(response.body.status).toBe(false)
+    expect(response.body.msg).toMatch(/No tienes permisos/i)
+  })
+
   test('rejects solicitante from reading users', async () => {
     const solicitanteToken = await getAuthHeader('solicitante')
     const response = await request(app)
