@@ -10,7 +10,7 @@ La brecha que sigue abierta se concentra en:
 
 - historial tecnico
 - calificacion del servicio
-- paginacion y versionado de esquema
+- paginacion
 - permisos mas finos fuera del nucleo operativo
 
 ## Lo Mejor Resuelto Hoy
@@ -27,6 +27,7 @@ La brecha que sigue abierta se concentra en:
 - rate limiting en login
 - saneamiento base de respuestas `500`
 - observabilidad minima con `X-Request-Id`, `GET /api/health` y logs JSON
+- migraciones versionadas con tabla `schema_migrations` y runner dedicado
 
 ## Estado Del Dominio
 
@@ -86,6 +87,5 @@ Orden sugerido desde el estado actual:
 
 1. implementar `historial tecnico`
 2. implementar `calificacion del servicio`
-3. formalizar migraciones versionadas
-4. agregar paginacion y metadatos de listado
-5. extender cobertura automatizada a modulos no operativos
+3. agregar paginacion y metadatos de listado
+4. extender cobertura automatizada a modulos no operativos

@@ -42,7 +42,7 @@ Lo aun pendiente o parcial:
 - [x] CORS restringido por entorno
 - [x] endurecimiento de errores
 - [x] observabilidad minima
-- [ ] migraciones versionadas
+- [x] migraciones versionadas
 - [ ] paginacion y metadatos
 - [-] ampliacion adicional de cobertura fuera del nucleo operativo
 
@@ -250,21 +250,24 @@ Brecha actual:
 
 #### 10. Formalizar gestion del esquema
 
-Estado: `[ ] pendiente`
+Estado: `[x] completado`
 
 Checklist:
 
-- [ ] adoptar migraciones versionadas
+- [x] adoptar migraciones versionadas
 - [ ] definir seeders para catalogos base
-- [ ] reducir dependencia de cambios automaticos al iniciar
+- [x] reducir dependencia de cambios automaticos al iniciar
 
 Evidencia actual:
 
-- existe bootstrap de esquema operativo e indices
+- existe runner de migraciones versionadas en `src/models/database/migrations/`
+- `pnpm run db:migrate` crea y usa la tabla `schema_migrations`
+- el esquema canonico base y las extensiones operativas evidenciadas quedaron migradas a archivos versionados
+- `pnpm run db:migrate` fue validado con exito el `2026-03-28`, incluyendo segunda corrida idempotente con `0` migraciones aplicadas
 
 Brecha actual:
 
-- el proyecto sigue dependiendo de `ensure schema` en vez de una disciplina de migraciones
+- aun falta formalizar seeders versionados para catalogos base y datos iniciales no operativos
 
 #### 11. Agregar paginacion y metadatos
 
@@ -307,6 +310,7 @@ Como minimo deberian estar completos:
 - [x] errores endurecidos
 - [x] CORS restringido
 - [x] observabilidad minima
+- [x] migraciones versionadas
 - [x] pruebas basicas de login y de flujos operativos criticos
 
 ## Regla De Mantenimiento

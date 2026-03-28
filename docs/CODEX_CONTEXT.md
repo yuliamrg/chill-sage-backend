@@ -68,7 +68,8 @@ No ejecuta bootstrap de esquema, roles ni usuarios de prueba.
 
 Cuando eso se requiere, el repo expone scripts manuales:
 
-- `pnpm run db:ensure-schema`
+- `pnpm run db:migrate`
+- `pnpm run db:ensure-schema` como alias legacy
 - `pnpm run db:bootstrap-auth`
 
 ## Restricciones Reales Del Codigo
@@ -120,6 +121,12 @@ Si el cambio toca seguridad u operacion:
 
 1. actualiza tambien [engineering/HARDENING_PLAN.md](./engineering/HARDENING_PLAN.md)
 2. documenta si frontend debe ajustar `Origin`, manejo de `429` o tratamiento de errores `500`
+
+Si el cambio toca esquema:
+
+1. agregar una nueva migracion en `src/models/database/migrations/`
+2. no introducir cambios estructurales nuevos en `pnpm start`
+3. usar `pnpm run db:migrate` para validar el resultado
 
 ## Meta Practica
 

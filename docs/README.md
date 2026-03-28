@@ -65,7 +65,8 @@ El backend ya no ejecuta bootstrap de esquema ni de autenticacion durante `pnpm 
 
 Para preparar entorno de desarrollo:
 
-- usar `pnpm run db:ensure-schema` para esquema operativo
+- usar `pnpm run db:migrate` para aplicar esquema versionado
+- `pnpm run db:ensure-schema` queda como alias de compatibilidad
 - usar `pnpm run db:bootstrap-auth` para roles y usuarios de prueba
 
 ## Compatibilidad De Frontend

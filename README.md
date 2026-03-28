@@ -131,7 +131,7 @@ Orden recomendado:
 - `DB_PASSWORD`: contrasena de base de datos
 - `DB_HOSTNAME`: host de MySQL. Default `127.0.0.1`
 - `DB_PORT`: puerto de MySQL. Default `3306`
-- `DB_SYNC`: si vale `true`, `pnpm run db:ensure-schema` ejecuta `db.sync({ force: false })` antes del ensure operativo
+- `DB_SYNC`: si vale `true`, `pnpm run db:migrate` ejecuta `db.sync({ force: false })` antes de correr migraciones versionadas. Debe usarse solo como apoyo de compatibilidad, no como mecanismo principal de evolucion del esquema
 - `JWT_SECRET`: secreto para firmar tokens
 - `JWT_EXPIRES_IN`: duracion del access token. Default `8h`
 - `APP_NAME`: nombre logico del servicio para logs estructurados. Default `chillsage-backend`
@@ -217,21 +217,39 @@ Referencia:
 Cuando necesitas preparar base de datos o datos de autenticacion, usa scripts dedicados:
 
 ```bash
-pnpm run db:ensure-schema
+pnpm run db:migrate
 pnpm run db:bootstrap-auth
 ```
 
 Que hace cada uno:
 
-- `db:ensure-schema`: autentica DB, inicializa asociaciones, ejecuta `db.sync({ force: false })` solo si `DB_SYNC=true` y luego corre `ensureOperationalSchema()`
+- `db:migrate`: autentica DB, inicializa asociaciones, crea la tabla `schema_migrations` si no existe y aplica migraciones versionadas pendientes
+- `db:ensure-schema`: alias temporal de `db:migrate` para no romper flujos viejos
 - `db:bootstrap-auth`: autentica DB, asegura roles base y crea o actualiza usuarios de prueba por rol
 
 Flujo recomendado para una base nueva:
 
 1. configurar `.env`
-2. correr `pnpm run db:ensure-schema`
+2. correr `pnpm run db:migrate`
 3. correr `pnpm run db:bootstrap-auth`
 4. correr `pnpm start`
+
+## Migraciones Versionadas
+
+El proyecto ya no depende de `ensureOperationalSchema()` para evolucionar el esquema.
+
+Estado actual:
+
+- las migraciones viven en `src/models/database/migrations/`
+- el historial aplicado queda registrado en la tabla `schema_migrations`
+- `pnpm start` no toca la estructura de DB
+- `pnpm run db:migrate` es el mecanismo canonico para llevar el esquema al estado esperado
+
+Regla operativa:
+
+- cada cambio nuevo de esquema debe entrar como un nuevo archivo de migracion versionado
+- no se deben introducir cambios estructurales nuevos en el arranque de la app
+- `DB_SYNC=true` queda solo para compatibilidad controlada sobre esquemas legacy
 
 ## API
 

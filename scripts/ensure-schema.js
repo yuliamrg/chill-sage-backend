@@ -2,7 +2,7 @@ require('dotenv').config()
 
 const db = require('../src/models/database/dbconnection')
 const { initializeModelAssociations } = require('../src/models')
-const { ensureOperationalSchema } = require('../src/models/database/ensureOperationalSchema')
+const { runMigrations } = require('../src/models/database/migrations')
 
 const run = async () => {
   await db.authenticate()
@@ -12,8 +12,8 @@ const run = async () => {
     await db.sync({ force: false })
   }
 
-  await ensureOperationalSchema()
-  console.log('Operational schema ensured')
+  const result = await runMigrations()
+  console.log(`Schema migrations completed. Applied ${result.applied.length} of ${result.totalKnown} known migrations.`)
 }
 
 run()
