@@ -116,7 +116,7 @@ Evidencia actual:
 
 Brecha actual:
 
-- `users`, `clients`, `equipments` y otros recursos maestros aun requieren permisos mas finos y mayor aislamiento por cliente
+- aunque `users`, `clients` y `equipments` ya tienen permisos mas finos, aun falta decidir si otros recursos maestros o filtros por cliente requieren aislamiento adicional
 
 #### 4. Endurecer validacion de payloads
 
@@ -125,19 +125,21 @@ Estado: `[-] parcial`
 Checklist:
 
 - [x] `requests`, `orders` y `schedules` usan listas blancas y validaciones de dominio
-- [-] `users`, `clients` y `equipments` usan listas blancas basicas
+- [x] `users`, `clients` y `equipments` usan listas blancas con policy de dominio y validaciones mas ricas
 - [ ] rechazar explicitamente campos desconocidos donde hoy se silencian
-- [ ] validar relaciones y enums de forma consistente en recursos no operativos
+- [x] validar relaciones y enums de forma consistente en recursos no operativos
 - [ ] consolidar DTOs o helpers si la complejidad crece
 
 Evidencia actual:
 
+- `users`, `clients` y `equipments` ya usan policies de dominio dedicadas para normalizacion, validacion y permisos finos
 - el patron de `pickAllowedFields` ya esta extendido a varios controladores
-- el mayor endurecimiento de negocio vive en el nucleo operativo
+- el mayor endurecimiento de negocio sigue viviendo en el nucleo operativo
 
 Brecha actual:
 
-- en recursos maestros aun predomina whitelisting basico sin validaciones mas ricas ni rechazo explicito de campos sobrantes
+- aun se silencian campos sobrantes en vez de rechazarlos explicitamente
+- falta decidir si conviene consolidar DTOs/helpers compartidos ahora que el patron se repite en recursos maestros
 
 #### 5. Endurecer reglas de estado y acciones por endpoint
 
@@ -233,21 +235,21 @@ Estado: `[-] parcial`
 Checklist:
 
 - [x] suites de login, autorizacion y flujos operativos existentes
-- [ ] cobertura adicional para `users`
-- [ ] cobertura adicional para `clients`
-- [ ] cobertura adicional para `equipments`
+- [x] cobertura adicional para `users`
+- [x] cobertura adicional para `clients`
+- [x] cobertura adicional para `equipments`
 - [ ] mas escenarios negativos de validacion y ownership
 - [ ] ejecucion automatizada en CI
 
 Evidencia actual:
 
 - existen pruebas de integracion para login, autorizacion y flujo operativo
-- existen pruebas adicionales para observabilidad, migraciones, hardening y paginacion
-- `pnpm test` ejecutado con exito el `2026-03-28`: `9` suites y `29` tests en verde
+- existen pruebas adicionales para observabilidad, migraciones, hardening, paginacion y recursos maestros
+- `pnpm test` ejecutado con exito el `2026-03-28`: `12` suites y `59` tests en verde
 
 Brecha actual:
 
-- la cobertura sigue concentrada en el nucleo operativo
+- aun faltan mas escenarios negativos de validacion fina, ownership y automatizacion en CI
 
 #### 10. Formalizar gestion del esquema
 

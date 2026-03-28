@@ -85,4 +85,6 @@ Cambios de compatibilidad vigentes hoy:
 - todas las respuestas incluyen `X-Request-Id` para soporte y correlacion
 - existe `GET /api/health` sin autenticacion para chequeo operativo basico
 - la autenticacion sigue siendo solo `Bearer token`
+- `users` ya no debe integrarse como CRUD editable para `planeador`; revisar permisos, validaciones y restricciones de `DELETE` en [contracts/FRONTEND_API_SERVICES.md](./contracts/FRONTEND_API_SERVICES.md)
+- `clients` ya no debe integrarse como CRUD libre para `planeador`; revisar restricciones de campos, validaciones y `DELETE` en [contracts/FRONTEND_API_SERVICES.md](./contracts/FRONTEND_API_SERVICES.md)
 - `equipments` ya no debe integrarse como CRUD libre para `planeador`; revisar matriz de permisos y restricciones de campos en [contracts/FRONTEND_API_SERVICES.md](./contracts/FRONTEND_API_SERVICES.md)

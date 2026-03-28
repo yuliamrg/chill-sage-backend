@@ -1,4 +1,17 @@
 const Client = require('../../models/Clients/Client.model')
+const Equipment = require('../../models/Equipments/Equipment.model')
+const Order = require('../../models/Orders/Order.model')
+const Request = require('../../models/Requests/request.model')
+const Schedule = require('../../models/Schedules/Schedule.model')
+const User = require('../../models/Users/User.model')
+const {
+  assertClientDeleteAllowed,
+  assertClientRequiredFields,
+  assertClientUpdateAllowed,
+  buildClientPayload,
+  validateClientPayload,
+} = require('../../domain/operations/clientPolicy')
+const { DomainError, buildDomainErrorResponse } = require('../../domain/shared/domainError')
 const { success, failure } = require('../../utils/apiResponse')
 const { PaginationQueryError, buildPaginationMeta, parsePaginationQuery } = require('../../utils/pagination')
 const { handleRequestError } = require('../../utils/requestError')
@@ -41,11 +54,20 @@ const getClients = async (req, res) => {
 
 const createClient = async (req, res) => {
   try {
-    const clientCreate = await Client.create(withCreateAudit(pickAllowedFields(req.body, CLIENT_FIELDS), req.auth))
+    const payload = buildClientPayload(pickAllowedFields(req.body, CLIENT_FIELDS))
+
+    assertClientRequiredFields(payload)
+    validateClientPayload(payload)
+
+    const clientCreate = await Client.create(withCreateAudit(payload, req.auth))
     return success(res, 201, 'Cliente creado con exito', {
       client: clientCreate,
     })
   } catch (error) {
+    if (error instanceof DomainError) {
+      return buildDomainErrorResponse(res, error, 'client')
+    }
+
     return handleRequestError({
       context: 'clients.create',
       req,
@@ -79,22 +101,32 @@ const getClientById = async (req, res) => {
 const updateClient = async (req, res) => {
   const { id } = req.params
   try {
-    const clientUpdate = await Client.update(withUpdateAudit(pickAllowedFields(req.body, CLIENT_FIELDS), req.auth), {
-      where: {
-        id: id,
-      },
-    })
+    const client = await Client.findByPk(id)
 
-    if (clientUpdate[0] === 0) {
-      return failure(res, 404, 'Cliente no encontrado o no se realizaron cambios', { client: null })
+    if (!client) {
+      return failure(res, 404, 'Cliente no encontrado', { client: null })
     }
 
-    const updatedClient = await Client.findByPk(id)
+    const payload = buildClientPayload(pickAllowedFields(req.body, CLIENT_FIELDS))
+    const nextPayload = {
+      ...client.toJSON(),
+      ...payload,
+    }
+
+    assertClientRequiredFields(nextPayload)
+    validateClientPayload(nextPayload)
+    assertClientUpdateAllowed({ client, payload, roleName: req.auth?.roleName })
+
+    await client.update(withUpdateAudit(payload, req.auth))
 
     return success(res, 200, 'Cliente actualizado con exito', {
-      client: updatedClient,
+      client,
     })
   } catch (error) {
+    if (error instanceof DomainError) {
+      return buildDomainErrorResponse(res, error, 'client')
+    }
+
     return handleRequestError({
       context: 'clients.update',
       req,
@@ -113,11 +145,26 @@ const destroyClient = async (req, res) => {
     if (!client) {
       return failure(res, 404, 'Cliente no encontrado', { client: null })
     }
+
+    const [users, equipments, requests, orders, schedules] = await Promise.all([
+      User.count({ where: { client: client.id } }),
+      Equipment.count({ where: { client: client.id } }),
+      Request.count({ where: { client_id: client.id } }),
+      Order.count({ where: { client_id: client.id } }),
+      Schedule.count({ where: { client_id: client.id } }),
+    ])
+
+    assertClientDeleteAllowed({ users, equipments, requests, orders, schedules })
+
     await client.destroy()
     return success(res, 200, 'Cliente eliminado con exito', {
       client,
     })
   } catch (error) {
+    if (error instanceof DomainError) {
+      return buildDomainErrorResponse(res, error, 'client')
+    }
+
     return failure(res, 500, 'No fue posible eliminar el cliente', {
       client: null,
     })

@@ -193,9 +193,19 @@ Cambio esperado en frontend:
 - verificar que `VITE_API_URL` o equivalente apunte al backend y que su origin este permitido por `CORS_ORIGINS`
 - si el frontend corre con `ng serve`, incluir `http://localhost:4200` y `http://127.0.0.1:4200` en `CORS_ORIGINS`
 - para `equipments`, no reutilizar exactamente el mismo formulario editable entre `admin` y `planeador` sin bloqueo de campos
+- para `clients`, no reutilizar exactamente el mismo formulario editable entre `admin` y `planeador` sin bloqueo de campos
+- para `users`, no exponer altas, edicion ni `DELETE` a `planeador`; ese modulo ya es de solo lectura para ese rol
+- ocultar `DELETE` de clientes para `planeador`
+- limitar `status` de clientes a `active` e `inactive`
+- validar `email` de clientes y, si aplica, `phone` antes de enviar
+- manejar `409` al eliminar clientes como caso de relaciones activas, no como fallo inesperado
 - ocultar `DELETE` de equipos para `planeador`
 - limitar `status` de equipos a `active`, `inactive`, `maintenance`, `retired`
 - validar que `use_end_at` no sea menor que `use_start_at`
+- validar `username` de usuarios con patron `^[A-Za-z0-9._-]{3,50}$`
+- validar `email` y `password` de usuarios antes de enviar; `password` requiere minimo 8 caracteres
+- limitar `status` de usuarios a `active` e `inactive`
+- manejar `409` al eliminar usuarios como caso esperado si es auto-eliminacion o si hay `requests`/`orders` asociados
 - no enviar `user_created_id` ni `user_updated_id` esperando controlar auditoria
 
 ## Esquema Oficial
@@ -316,6 +326,12 @@ Para `equipments`, el frontend debe revisar en cada cambio:
 - si `planeador` sigue teniendo formulario parcial o campos bloqueados para `name`, `type`, `brand`, `model`, `serial`, `code` y `client`
 - si `DELETE` sigue visible solo para `admin`
 - si los validadores de fechas y estados siguen alineados con el contrato backend
+
+Para `users`, el frontend debe revisar en cada cambio:
+
+- si `planeador` sigue limitado a lectura en listados y detalle
+- si `create`, `edit` y `DELETE` siguen visibles solo para `admin`
+- si las validaciones de `username`, `email`, `password` y `status` siguen alineadas con el contrato backend
 
 ## Otros Documentos
 

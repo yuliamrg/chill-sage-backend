@@ -76,10 +76,30 @@ const createTechUserFixture = async ({ adminUserId, suffix, password }) => {
   return user
 }
 
+const createUserFixture = async ({ adminUserId, suffix, password, overrides = {} }) => {
+  const hashedPassword = await bcrypt.hash(password, 10)
+  const user = await User.create({
+    username: overrides.username || `user_${suffix}`,
+    email: overrides.email || `user_${suffix}@example.com`,
+    password: hashedPassword,
+    name: overrides.name || 'Temp',
+    last_name: overrides.last_name || 'User',
+    client: Object.prototype.hasOwnProperty.call(overrides, 'client') ? overrides.client : null,
+    role: overrides.role || 2,
+    status: overrides.status || 'active',
+    user_created_id: adminUserId,
+  })
+
+  track('users', user.id)
+  return user
+}
+
 const trackRequest = (id) => track('requests', id)
 const trackOrder = (id) => track('orders', id)
 const trackSchedule = (id) => track('schedules', id)
 const trackEquipment = (id) => track('equipments', id)
+const trackClient = (id) => track('clients', id)
+const trackUser = (id) => track('users', id)
 
 const cleanupTrackedFixtures = async () => {
   if (trackedIds.schedules.size) {
@@ -115,12 +135,15 @@ module.exports = {
   cleanupTrackedFixtures,
   createClientFixture,
   createEquipmentFixture,
+  createUserFixture,
   createTechUserFixture,
   getUserByUsername,
   trackOrder,
   trackEquipment,
+  trackClient,
   trackRequest,
   trackSchedule,
+  trackUser,
   untrack,
   uniqueSuffix,
 }

@@ -69,11 +69,38 @@ describe('authorization boundaries', () => {
     expect(response.body.msg).toMatch(/No tienes permisos/i)
   })
 
+  test('rejects planeador when trying to delete clients', async () => {
+    const planeadorToken = await getAuthHeader('planeador')
+    const response = await request(app)
+      .delete('/api/clients/1')
+      .set('Authorization', planeadorToken)
+
+    expect(response.status).toBe(403)
+    expect(response.body.status).toBe(false)
+    expect(response.body.msg).toMatch(/No tienes permisos/i)
+  })
+
   test('rejects solicitante from reading users', async () => {
     const solicitanteToken = await getAuthHeader('solicitante')
     const response = await request(app)
       .get('/api/users')
       .set('Authorization', solicitanteToken)
+
+    expect(response.status).toBe(403)
+    expect(response.body.status).toBe(false)
+    expect(response.body.msg).toMatch(/No tienes permisos/i)
+  })
+
+  test('rejects planeador from creating users', async () => {
+    const planeadorToken = await getAuthHeader('planeador')
+    const response = await request(app)
+      .post('/api/users')
+      .set('Authorization', planeadorToken)
+      .send({
+        username: 'planeador-nope',
+        email: 'planeador-nope@example.com',
+        password: 'Password123!',
+      })
 
     expect(response.status).toBe(403)
     expect(response.body.status).toBe(false)

@@ -1,13 +1,26 @@
 const User = require('../../models/Users/User.model')
 const Client = require('../../models/Clients/Client.model')
 const Role = require('../../models/Roles/Role.model')
+const Order = require('../../models/Orders/Order.model')
+const Request = require('../../models/Requests/request.model')
 const { Op } = require('sequelize')
 const bcrypt = require('bcrypt')
+const {
+  assertUserCreateRequiredFields,
+  assertUserDeleteAllowed,
+  assertUserPersistedRequiredFields,
+  assertUserRelationsExist,
+  assertUserUniqueFields,
+  assertUserUpdateAllowed,
+  buildUserPayload,
+  resolveCreateDefaults,
+  validateUserPayload,
+} = require('../../domain/operations/userPolicy')
+const { DomainError, buildDomainErrorResponse } = require('../../domain/shared/domainError')
 const { success, failure } = require('../../utils/apiResponse')
 const { PaginationQueryError, buildPaginationMeta, parsePaginationQuery } = require('../../utils/pagination')
 const { handleRequestError, logRequestError } = require('../../utils/requestError')
 const { signAccessToken, getJwtExpiresIn } = require('../../auth/jwt')
-const { ROLE_IDS, ROLE_NAMES } = require('../../auth/roles')
 const { pickAllowedFields, withCreateAudit, withUpdateAudit } = require('../../utils/payload')
 const { buildRequestLogContext, logInfo, logWarn } = require('../../observability/logger')
 
@@ -176,34 +189,34 @@ const getUserById = async (req, res) => {
 
 const createUser = async (req, res) => {
   try {
-    const userPayload = pickAllowedFields(req.body, USER_CREATE_FIELDS)
-    const { password } = userPayload
+    const payload = resolveCreateDefaults(buildUserPayload(pickAllowedFields(req.body, USER_CREATE_FIELDS)))
 
-    if (!password) {
-      return failure(res, 400, 'La contrasena es obligatoria', { user: null })
-    }
+    assertUserCreateRequiredFields(payload)
+    validateUserPayload(payload)
+    await assertUserRelationsExist({
+      Client,
+      Role,
+      clientId: payload.client,
+      roleId: payload.role,
+    })
+    await assertUserUniqueFields({
+      User,
+      username: payload.username,
+      email: payload.email,
+    })
 
-    const hashedPassword = await bcrypt.hash(password, 10)
-    userPayload.password = hashedPassword
+    const hashedPassword = await bcrypt.hash(payload.password, 10)
+    payload.password = hashedPassword
 
-    if (req.auth?.roleName !== ROLE_NAMES.ADMIN) {
-      delete userPayload.role
-      delete userPayload.status
-    }
-
-    if (!userPayload.status) {
-      userPayload.status = 'active'
-    }
-
-    if (!userPayload.role) {
-      userPayload.role = ROLE_IDS.SOLICITANTE
-    }
-
-    const userCreate = await User.create(withCreateAudit(userPayload, req.auth))
+    const userCreate = await User.create(withCreateAudit(payload, req.auth))
     return success(res, 201, 'Usuario creado con exito', {
       user: await enrichUser(userCreate),
     })
   } catch (error) {
+    if (error instanceof DomainError) {
+      return buildDomainErrorResponse(res, error, 'user')
+    }
+
     return handleRequestError({
       context: 'users.create',
       req,
@@ -218,44 +231,53 @@ const createUser = async (req, res) => {
 const updateUser = async (req, res) => {
   try {
     const { id } = req.params
-    const userPayload = pickAllowedFields(req.body, USER_UPDATE_FIELDS)
+    const user = await User.findByPk(id)
 
-    if (req.auth?.roleName !== ROLE_NAMES.ADMIN) {
-      delete userPayload.role
-      delete userPayload.status
-    }
-
-    if (userPayload.email) {
-      const emailExists = await User.findOne({
-        where: { email: userPayload.email, id: { [Op.ne]: id } },
-      })
-
-      if (emailExists) {
-        return failure(res, 400, 'El email ya esta en uso', { user: null })
-      }
-    }
-
-    if (userPayload.password) {
-      const hashedPassword = await bcrypt.hash(userPayload.password, 10)
-      userPayload.password = hashedPassword
-    }
-
-    const userUpdate = await User.update(withUpdateAudit(userPayload, req.auth), {
-      where: {
-        id: id,
-      },
-    })
-
-    if (userUpdate[0] === 0) {
+    if (!user) {
       return failure(res, 404, 'Usuario no encontrado o no se realizaron cambios', { user: null })
     }
 
-    const updatedUser = await User.findByPk(id)
+    const payload = buildUserPayload(pickAllowedFields(req.body, USER_UPDATE_FIELDS))
+    const currentUser = user.toJSON()
+    const nextPayload = {
+      ...currentUser,
+      ...payload,
+    }
+
+    assertUserPersistedRequiredFields(nextPayload)
+    validateUserPayload(nextPayload)
+    await assertUserRelationsExist({
+      Client,
+      Role,
+      clientId: nextPayload.client,
+      roleId: nextPayload.role,
+    })
+    await assertUserUniqueFields({
+      User,
+      username: nextPayload.username,
+      email: nextPayload.email,
+      excludeUserId: id,
+    })
+    assertUserUpdateAllowed({
+      currentUser,
+      payload,
+      authUserId: req.auth?.userId,
+    })
+
+    if (payload.password) {
+      payload.password = await bcrypt.hash(payload.password, 10)
+    }
+
+    await user.update(withUpdateAudit(payload, req.auth))
 
     return success(res, 200, 'Usuario actualizado con exito', {
-      user: await enrichUser(updatedUser),
+      user: await enrichUser(user),
     })
   } catch (error) {
+    if (error instanceof DomainError) {
+      return buildDomainErrorResponse(res, error, 'user')
+    }
+
     return handleRequestError({
       context: 'users.update',
       req,
@@ -276,12 +298,28 @@ const destroyUser = async (req, res) => {
       return failure(res, 404, 'Usuario no encontrado', { user: null })
     }
 
+    const [requesterRequests, reviewedRequests, assignedOrders] = await Promise.all([
+      Request.count({ where: { requester_user_id: user.id } }),
+      Request.count({ where: { reviewed_by_user_id: user.id } }),
+      Order.count({ where: { assigned_user_id: user.id } }),
+    ])
+
+    assertUserDeleteAllowed({
+      targetUserId: user.id,
+      authUserId: req.auth?.userId,
+      relationCounts: { requesterRequests, reviewedRequests, assignedOrders },
+    })
+
     await user.destroy()
 
     return success(res, 200, 'Usuario eliminado con exito', {
       user: await enrichUser(user),
     })
   } catch (error) {
+    if (error instanceof DomainError) {
+      return buildDomainErrorResponse(res, error, 'user')
+    }
+
     return failure(res, 500, 'No fue posible eliminar el usuario', {
       user: null,
     })

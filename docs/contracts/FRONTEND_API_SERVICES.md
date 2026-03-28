@@ -202,8 +202,6 @@ Roles base actuales:
 
 Los siguientes recursos siguen expuestos principalmente como CRUD:
 
-- `users`
-- `clients`
 - `roles`
 - `profiles`
 
@@ -214,6 +212,113 @@ Rutas base:
 - `POST /<resource>`
 - `PUT /<resource>/:id`
 - `DELETE /<resource>/:id`
+
+### Users
+
+`users` sigue siendo un recurso maestro administrativo, pero ya no debe tratarse como CRUD completamente libre solo porque mantenga rutas base.
+
+#### Endpoints
+
+- `GET /users`
+- `GET /users/:id`
+- `POST /users`
+- `PUT /users/:id`
+- `DELETE /users/:id`
+
+#### Campos de lectura
+
+- `id`
+- `username`
+- `name`
+- `last_name`
+- `email`
+- `client`
+- `role`
+- `status`
+- `created_at`
+- `updated_at`
+- `user_created_id`
+- `user_updated_id`
+- `client_name`
+- `role_name`
+
+#### Campos permitidos en create
+
+```json
+{
+  "username": "planner.norte",
+  "name": "Paula",
+  "last_name": "Lopez",
+  "email": "paula.lopez@example.com",
+  "password": "Passw0rd!",
+  "client": 1,
+  "role": 3,
+  "status": "active"
+}
+```
+
+Reglas:
+
+- `username`, `email`, `password`, `role` y `status` son obligatorios
+- si frontend omite `role`, backend usa `solicitante` como default operativo
+- si frontend omite `status`, backend usa `active` como default operativo
+- `username` debe cumplir `^[A-Za-z0-9._-]{3,50}$`
+- `email` debe ser valido
+- `password` debe tener al menos 8 caracteres y no puede ser vacia
+- si se envia `client`, debe referenciar un cliente existente
+- `role` debe referenciar un rol existente
+- `status` solo acepta `active` o `inactive`
+- `username` y `email` deben ser unicos; colisiones responden `409`
+- `user_created_id` enviado por frontend se ignora; auditoria la define el backend
+- el campo `password` nunca se devuelve en respuestas
+
+#### Campos permitidos en update
+
+- `username`
+- `name`
+- `last_name`
+- `email`
+- `password`
+- `client`
+- `role`
+- `status`
+
+Restriccion por rol:
+
+- solo `admin` puede crear, editar o eliminar usuarios
+- `planeador` conserva solo lectura
+
+Reglas adicionales:
+
+- el propio `admin` autenticado no puede cambiar su `role`
+- el propio `admin` autenticado no puede cambiar su `status`
+- `user_updated_id` enviado por frontend se ignora; auditoria la define el backend
+
+#### Estados
+
+- `active`
+- `inactive`
+
+#### Reglas de acceso
+
+- `GET`: `admin`, `planeador`
+- `POST`: solo `admin`
+- `PUT`: solo `admin`
+- `DELETE`: solo `admin`
+
+#### Reglas de negocio
+
+- el frontend no debe asumir que `DELETE` depende solo del rol
+- un usuario no puede eliminarse a si mismo; responde `409`
+- un usuario con `requests` creadas, `requests` revisadas u `orders` asignadas responde `409`
+- si frontend ofrece rotacion de password, debe tratarla como cambio sensible solo para `admin`
+
+#### Guia de frontend por rol
+
+- `admin`: mostrar formulario completo de alta y edicion
+- `planeador`: mantener listados y detalle en solo lectura
+- ocultar `create`, `edit` y `DELETE` para cualquier rol distinto de `admin`
+- si existe una sola pantalla de detalle para `admin` y `planeador`, dejar todos los controles bloqueados cuando el actor no sea `admin`
 
 ## Recursos Operativos
 
@@ -373,6 +478,88 @@ Efectos:
 - `pending`: permitir `editar`, `approve` y `cancel` segun rol
 - `approved`: mostrar datos de revision y habilitar crear orden si el rol lo permite; bloquear `PUT`
 - `cancelled`: solo lectura; no ofrecer `approve`, `cancel` ni crear orden
+
+### Clients
+
+`clients` sigue siendo un recurso maestro, pero ya no debe tratarse como CRUD totalmente libre para `planeador`.
+
+#### Endpoints
+
+- `GET /clients`
+- `GET /clients/:id`
+- `POST /clients`
+- `PUT /clients/:id`
+- `DELETE /clients/:id`
+
+#### Campos de lectura
+
+- `id`
+- `name`
+- `address`
+- `phone`
+- `email`
+- `description`
+- `status`
+- `created_at`
+- `updated_at`
+- `user_created_id`
+- `user_updated_id`
+
+#### Campos permitidos en create
+
+```json
+{
+  "name": "Cliente Norte",
+  "address": "Calle 100 #10-20",
+  "phone": "+57 300 123 4567",
+  "email": "operaciones@cliente-norte.com",
+  "description": "Cliente corporativo con varias sedes",
+  "status": "active"
+}
+```
+
+Reglas:
+
+- `name`, `email` y `status` son obligatorios
+- strings obligatorios vacios o solo con espacios responden `400`
+- `email` debe ser valido
+- si se envia `phone`, debe tener formato valido y al menos 7 digitos
+- `status` solo acepta `active` o `inactive`
+- `user_created_id` enviado por frontend se ignora; auditoria la define el backend
+
+#### Campos permitidos en update
+
+- `name`
+- `address`
+- `phone`
+- `email`
+- `description`
+- `status`
+
+Restriccion por rol:
+
+- `admin` puede editar todos los campos permitidos
+- `planeador` solo puede editar campos operativos: `address`, `phone`, `description`, `status`
+- `planeador` no puede cambiar datos maestros base: `name`, `email`
+- `user_updated_id` enviado por frontend se ignora; auditoria la define el backend
+
+#### Estados
+
+- `active`
+- `inactive`
+
+#### Reglas de acceso
+
+- lectura: `admin`, `planeador`, `tecnico`
+- create: `admin`, `planeador`
+- update: `admin`, `planeador`
+- delete: solo `admin`
+
+#### Reglas de negocio
+
+- frontend no debe asumir que `DELETE` siempre depende solo del rol
+- un cliente con `users`, `equipments`, `requests`, `orders` o `schedules` asociados responde `409`
+- si frontend ofrece accion de eliminacion, debe reservarla para clientes huerfanos o manejar el `409` con mensaje claro
 
 ### Equipments
 
@@ -852,10 +1039,10 @@ Reglas:
 
 Detalle real:
 
-- `users`: `GET` para `admin` y `planeador`; escritura solo `admin`
+- `users`: lectura `admin`, `planeador`; create/update/delete solo `admin`
 - `roles`: `GET` para `admin` y `planeador`; escritura solo `admin`
 - `profiles`: `GET` para `admin` y `planeador`; escritura solo `admin`
-- `clients`: lectura `admin`, `planeador`, `tecnico`; escritura `admin`, `planeador`
+- `clients`: lectura `admin`, `planeador`, `tecnico`; create/update `admin`, `planeador`; delete solo `admin`
 - `equipments`: lectura `admin`, `planeador`, `tecnico`; create/update `admin`, `planeador`; delete solo `admin`
 - `requests`: lectura `admin`, `planeador`, `tecnico`, `solicitante`; create `admin`, `planeador`, `solicitante`; update `admin`, `planeador`; approve/cancel `admin`, `planeador`; delete solo `admin`
 - `orders`: lectura `admin`, `planeador`, `tecnico`, `solicitante`; create/update/assign/cancel `admin`, `planeador`; start/complete `admin`, `planeador`, `tecnico`; delete solo `admin`
@@ -881,6 +1068,21 @@ Puntos concretos a alinear en frontend con el hardening actual:
 - manejar `429` en login con UI de espera o mensaje de reintento
 - no depender de `error.message`, stacks o detalles internos en respuestas `500`
 - seguir enviando `Authorization: Bearer <token>` en todas las rutas privadas
+- dejar de tratar `users` como CRUD editable para cualquier actor con acceso al modulo
+- mostrar altas, edicion y `DELETE` de usuarios solo para `admin`
+- si existe una sola pantalla de usuario para `admin` y `planeador`, dejarla en solo lectura para `planeador`
+- al crear o editar usuarios, validar `username` con patron `^[A-Za-z0-9._-]{3,50}$`
+- validar `email` antes de enviar
+- si se envia `password`, exigir minimo 8 caracteres
+- restringir `status` de usuarios a `active` o `inactive`
+- tratar `409` como caso esperado al intentar eliminar el propio usuario o uno con `requests` u `orders` asociados
+- no esperar que el propio `admin` pueda desactivarse o cambiarse el rol desde la UI actual
+- dejar de tratar `clients` como formulario de edicion totalmente libre para `planeador`
+- si existe una sola pantalla de edicion de clientes para `admin` y `planeador`, bloquear en UI `name` y `email` cuando el actor sea `planeador`
+- ocultar o deshabilitar `DELETE` de clientes para `planeador`
+- al crear o editar clientes, restringir `status` a `active` o `inactive`
+- validar `email` antes de enviar y, si existe `phone`, exigir formato valido con al menos 7 digitos
+- si frontend ofrece eliminar clientes, manejar `409` como caso esperado cuando existan relaciones activas
 - dejar de tratar `equipments` como formulario de edicion totalmente libre para `planeador`
 - si existe una sola pantalla de edicion de equipos para `admin` y `planeador`, bloquear en UI `name`, `type`, `brand`, `model`, `serial`, `code` y `client` cuando el actor sea `planeador`
 - ocultar o deshabilitar `DELETE` de equipos para `planeador`
@@ -898,6 +1100,8 @@ Cambios que el frontend no necesita hacer:
 
 - no necesita migrar a cookies o sesion server-side
 - no necesita usar `username` para login; `email` sigue siendo el contrato preferido
+- no necesita crear endpoints nuevos para `users`; el ajuste es de permisos, validacion y comportamiento de UI
+- no necesita crear endpoints nuevos para `clients`; el ajuste es de permisos, validacion y comportamiento de UI
 - no necesita cambiar payloads de `requests`, `orders` o `schedules` por el hardening reciente
 - no necesita crear endpoints nuevos para `equipments`; el ajuste es de permisos, validacion y comportamiento de UI
 
@@ -950,7 +1154,7 @@ Notas operativas:
 ## Limitaciones Actuales Del Contrato
 
 - no hay refresh token
-- `requests`, `orders` y `schedules` ya tienen filtros, acciones de dominio y politicas centralizadas; otros modulos siguen mayormente CRUD
+- `requests`, `orders`, `schedules`, `equipments`, `clients` y `users` ya no deben tratarse como CRUD libre en frontend aunque sigan exponiendo rutas base
 - no existe recurso propio para historial tecnico
 - no existe recurso propio para calificacion del servicio
 - sigue existiendo borrado fisico como operacion excepcional reservada a `admin`
