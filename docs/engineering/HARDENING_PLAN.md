@@ -195,6 +195,7 @@ Evidencia actual:
 
 - CORS ahora depende de `CORS_ORIGINS`
 - requests con `Origin` no permitido son rechazadas
+- `.env.example` ya incluye origins locales tipicos para Angular CLI y Vite
 
 Brecha actual:
 

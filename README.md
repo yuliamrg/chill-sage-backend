@@ -134,6 +134,7 @@ Orden recomendado:
 - `JWT_SECRET`: secreto para firmar tokens
 - `JWT_EXPIRES_IN`: duracion del access token. Default `8h`
 - `CORS_ORIGINS`: lista separada por comas con los origins permitidos para navegador
+  Incluye por defecto `http://localhost:4200` y `http://127.0.0.1:4200` para desarrollo con `ng serve`.
 - `LOGIN_RATE_LIMIT_WINDOW_MS`: ventana del rate limit de login en milisegundos. Default `900000`
 - `LOGIN_RATE_LIMIT_MAX`: maximo de intentos fallidos permitidos en la ventana. Default `5`
 - `TEST_ADMIN_USERNAME`, `TEST_ADMIN_EMAIL`, `TEST_ADMIN_PASSWORD`: credenciales del usuario de prueba `admin`
@@ -182,6 +183,7 @@ Cambio esperado en frontend:
 - agregar manejo explicito de `429` en login y bloquear reintentos agresivos
 - mostrar mensaje de infraestructura o reintento para `500` sin intentar parsear detalle tecnico
 - verificar que `VITE_API_URL` o equivalente apunte al backend y que su origin este permitido por `CORS_ORIGINS`
+- si el frontend corre con `ng serve`, incluir `http://localhost:4200` y `http://127.0.0.1:4200` en `CORS_ORIGINS`
 
 ## Esquema Oficial
 

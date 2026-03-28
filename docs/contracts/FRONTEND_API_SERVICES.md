@@ -42,6 +42,7 @@ Todos los demas endpoints requieren:
 El hardening reciente agrega estas condiciones de integracion:
 
 - el frontend debe consumir la API desde un origin incluido en `CORS_ORIGINS`
+  En desarrollo con Angular CLI, eso normalmente implica `http://localhost:4200` y `http://127.0.0.1:4200`.
 - `POST /users/login` puede responder `429` por rate limiting
 - las respuestas `500` ya no deben asumirse con detalle tecnico interno
 - la autenticacion sigue siendo solo por token Bearer en header; no hay cookies ni refresh token
@@ -50,6 +51,7 @@ Checklist minima para frontend:
 
 - configurar `VITE_API_URL` o equivalente contra el backend correcto
 - alinear el origin del frontend con `CORS_ORIGINS` del backend
+- si se usa `ng serve`, registrar `http://localhost:4200` y `http://127.0.0.1:4200`
 - manejar `401`, `403`, `409`, `429` y `500` como estados esperados del contrato
 - no depender de mensajes de error internos ni de stacks
 
@@ -750,6 +752,7 @@ Puntos concretos a alinear en frontend con el hardening actual:
 
 - usar `email` como identificador de login
 - asegurarse de que el dominio o puerto del frontend este incluido en `CORS_ORIGINS`
+- para desarrollo local con Angular, asumir `http://localhost:4200` como origin base salvo configuracion distinta
 - manejar `429` en login con UI de espera o mensaje de reintento
 - no depender de `error.message`, stacks o detalles internos en respuestas `500`
 - seguir enviando `Authorization: Bearer <token>` en todas las rutas privadas

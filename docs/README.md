@@ -78,6 +78,7 @@ Si el frontend consume este backend desde navegador, debe revisar siempre:
 Cambios de compatibilidad vigentes hoy:
 
 - el origin del frontend debe estar incluido en `CORS_ORIGINS`
+- para desarrollo con Angular CLI, incluir `http://localhost:4200` y `http://127.0.0.1:4200`
 - login puede responder `429` por rate limiting
 - los errores `500` ya no exponen detalle interno; frontend debe tratar `msg` como texto final para usuario o fallback tecnico generico
 - la autenticacion sigue siendo solo `Bearer token`
