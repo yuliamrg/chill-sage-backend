@@ -1,18 +1,40 @@
 const Client = require('../../models/Clients/Client.model')
 const { success, failure } = require('../../utils/apiResponse')
+const { PaginationQueryError, buildPaginationMeta, parsePaginationQuery } = require('../../utils/pagination')
 const { handleRequestError } = require('../../utils/requestError')
 const { pickAllowedFields, withCreateAudit, withUpdateAudit } = require('../../utils/payload')
 
 const CLIENT_FIELDS = ['name', 'address', 'phone', 'email', 'description', 'status']
 const getClients = async (req, res) => {
   try {
-    const clients = await Client.findAll()
+    const pagination = parsePaginationQuery(req.query, {
+      allowedSortFields: ['id', 'name', 'email', 'status', 'created_at', 'updated_at'],
+      defaultSort: { field: 'created_at', direction: 'DESC' },
+    })
+    const { count, rows } = await Client.findAndCountAll({
+      limit: pagination.limit,
+      offset: pagination.offset,
+      order: pagination.order,
+    })
+
     return success(res, 200, 'Obteniendo clientes', {
-      clients: clients,
+      clients: rows,
+      meta: buildPaginationMeta({
+        page: pagination.page,
+        limit: pagination.limit,
+        total: count,
+        sort: pagination.sort,
+        returned: rows.length,
+      }),
     })
   } catch (error) {
+    if (error instanceof PaginationQueryError) {
+      return failure(res, 400, error.message, { clients: [], meta: null })
+    }
+
     return failure(res, 500, 'No fue posible obtener clientes', {
       clients: [],
+      meta: null,
     })
   }
 }

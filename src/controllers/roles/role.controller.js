@@ -1,18 +1,40 @@
 const Role = require('../../models/Roles/Role.model')
 const { success, failure } = require('../../utils/apiResponse')
+const { PaginationQueryError, buildPaginationMeta, parsePaginationQuery } = require('../../utils/pagination')
 const { handleRequestError } = require('../../utils/requestError')
 const { pickAllowedFields, withCreateAudit, withUpdateAudit } = require('../../utils/payload')
 
 const ROLE_FIELDS = ['description']
 const getRoles = async (req, res) => {
   try {
-    const roles = await Role.findAll()
+    const pagination = parsePaginationQuery(req.query, {
+      allowedSortFields: ['id', 'description', 'created_at', 'updated_at'],
+      defaultSort: { field: 'id', direction: 'ASC' },
+    })
+    const { count, rows } = await Role.findAndCountAll({
+      limit: pagination.limit,
+      offset: pagination.offset,
+      order: pagination.order,
+    })
+
     return success(res, 200, 'Obteniendo roles', {
-      roles: roles,
+      roles: rows,
+      meta: buildPaginationMeta({
+        page: pagination.page,
+        limit: pagination.limit,
+        total: count,
+        sort: pagination.sort,
+        returned: rows.length,
+      }),
     })
   } catch (error) {
+    if (error instanceof PaginationQueryError) {
+      return failure(res, 400, error.message, { roles: [], meta: null })
+    }
+
     return failure(res, 500, 'No fue posible obtener roles', {
       roles: [],
+      meta: null,
     })
   }
 }

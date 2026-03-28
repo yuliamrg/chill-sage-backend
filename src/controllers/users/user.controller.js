@@ -4,6 +4,7 @@ const Role = require('../../models/Roles/Role.model')
 const { Op } = require('sequelize')
 const bcrypt = require('bcrypt')
 const { success, failure } = require('../../utils/apiResponse')
+const { PaginationQueryError, buildPaginationMeta, parsePaginationQuery } = require('../../utils/pagination')
 const { handleRequestError, logRequestError } = require('../../utils/requestError')
 const { signAccessToken, getJwtExpiresIn } = require('../../auth/jwt')
 const { ROLE_IDS, ROLE_NAMES } = require('../../auth/roles')
@@ -121,14 +122,35 @@ const login = async (req, res) => {
 
 const getUsers = async (req, res) => {
   try {
-    const users = await User.findAll()
-    const hydratedUsers = await Promise.all(users.map(enrichUser))
+    const pagination = parsePaginationQuery(req.query, {
+      allowedSortFields: ['id', 'username', 'email', 'status', 'created_at', 'updated_at'],
+      defaultSort: { field: 'created_at', direction: 'DESC' },
+    })
+    const { count, rows } = await User.findAndCountAll({
+      limit: pagination.limit,
+      offset: pagination.offset,
+      order: pagination.order,
+    })
+    const hydratedUsers = await Promise.all(rows.map(enrichUser))
+
     return success(res, 200, 'Obteniendo usuarios', {
       users: hydratedUsers,
+      meta: buildPaginationMeta({
+        page: pagination.page,
+        limit: pagination.limit,
+        total: count,
+        sort: pagination.sort,
+        returned: hydratedUsers.length,
+      }),
     })
   } catch (error) {
+    if (error instanceof PaginationQueryError) {
+      return failure(res, 400, error.message, { users: [], meta: null })
+    }
+
     return failure(res, 500, 'No fue posible obtener usuarios', {
       users: [],
+      meta: null,
     })
   }
 }

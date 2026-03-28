@@ -17,6 +17,7 @@ const {
 const { DomainError, buildDomainErrorResponse } = require('../../domain/shared/domainError')
 const { Client, Equipment, Order, Request, User } = require('../../models')
 const { success, failure } = require('../../utils/apiResponse')
+const { PaginationQueryError, buildPaginationMeta, parsePaginationQuery } = require('../../utils/pagination')
 const { handleRequestError } = require('../../utils/requestError')
 const { pickAllowedFields, withCreateAudit, withUpdateAudit } = require('../../utils/payload')
 
@@ -179,22 +180,40 @@ const getOrderRecord = async (id, auth) => {
 
 const getOrders = async (req, res) => {
   try {
-    const orders = await Order.findAll({
-      where: await buildOrdersWhere(req),
-      order: [['created_at', 'DESC'], ['id', 'DESC']],
+    const pagination = parsePaginationQuery(req.query, {
+      allowedSortFields: ['id', 'created_at', 'status', 'type', 'planned_start_at', 'started_at', 'finished_at', 'assigned_user_id'],
+      defaultSort: { field: 'created_at', direction: 'DESC' },
     })
-    const hydratedOrders = await Promise.all(orders.map(hydrateOrder))
+    const { count, rows } = await Order.findAndCountAll({
+      where: await buildOrdersWhere(req),
+      limit: pagination.limit,
+      offset: pagination.offset,
+      order: pagination.order,
+    })
+    const hydratedOrders = await Promise.all(rows.map(hydrateOrder))
 
     return success(res, 200, 'Obteniendo ordenes', {
       orders: hydratedOrders,
+      meta: buildPaginationMeta({
+        page: pagination.page,
+        limit: pagination.limit,
+        total: count,
+        sort: pagination.sort,
+        returned: hydratedOrders.length,
+      }),
     })
   } catch (error) {
     if (error instanceof DomainError) {
       return buildDomainErrorResponse(res, error, 'orders')
     }
 
+    if (error instanceof PaginationQueryError) {
+      return failure(res, 400, error.message, { orders: [], meta: null })
+    }
+
     return failure(res, 500, 'No fue posible obtener ordenes', {
       orders: [],
+      meta: null,
     })
   }
 }

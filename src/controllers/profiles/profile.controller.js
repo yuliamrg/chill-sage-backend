@@ -1,18 +1,40 @@
 const Profile = require('../../models/Profiles/Profile.model')
 const { success, failure } = require('../../utils/apiResponse')
+const { PaginationQueryError, buildPaginationMeta, parsePaginationQuery } = require('../../utils/pagination')
 const { handleRequestError } = require('../../utils/requestError')
 const { pickAllowedFields, withCreateAudit, withUpdateAudit } = require('../../utils/payload')
 
 const PROFILE_FIELDS = ['description']
 const getProfiles = async (req, res) => {
   try {
-    const profiles = await Profile.findAll()
+    const pagination = parsePaginationQuery(req.query, {
+      allowedSortFields: ['id', 'description', 'created_at', 'updated_at'],
+      defaultSort: { field: 'id', direction: 'ASC' },
+    })
+    const { count, rows } = await Profile.findAndCountAll({
+      limit: pagination.limit,
+      offset: pagination.offset,
+      order: pagination.order,
+    })
+
     return success(res, 200, 'Obteniendo perfiles', {
-      profiles: profiles,
+      profiles: rows,
+      meta: buildPaginationMeta({
+        page: pagination.page,
+        limit: pagination.limit,
+        total: count,
+        sort: pagination.sort,
+        returned: rows.length,
+      }),
     })
   } catch (error) {
+    if (error instanceof PaginationQueryError) {
+      return failure(res, 400, error.message, { profiles: [], meta: null })
+    }
+
     return failure(res, 500, 'No fue posible obtener perfiles', {
       profiles: [],
+      meta: null,
     })
   }
 }

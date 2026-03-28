@@ -77,7 +77,7 @@ Cuando eso se requiere, el repo expone scripts manuales:
 - hay autenticacion JWT Bearer
 - hay autorizacion por rol en rutas
 - no hay refresh token ni sesion server-side
-- no hay paginacion
+- hay paginacion uniforme en listados con `page`, `limit`, `sort` y `meta`
 - no hay historial tecnico ni calificaciones como recursos propios
 - existe borrado fisico, pero en recursos operativos queda restringido a `admin`
 

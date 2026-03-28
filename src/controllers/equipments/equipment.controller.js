@@ -1,6 +1,7 @@
 const Equipment = require('../../models/Equipments/Equipment.model')
 const Client = require('../../models/Clients/Client.model')
 const { success, failure } = require('../../utils/apiResponse')
+const { PaginationQueryError, buildPaginationMeta, parsePaginationQuery } = require('../../utils/pagination')
 const { handleRequestError } = require('../../utils/requestError')
 const { pickAllowedFields, withCreateAudit, withUpdateAudit } = require('../../utils/payload')
 
@@ -22,14 +23,35 @@ const enrichEquipment = async (equipment) => {
 
 const getEquipments = async (req, res) => {
   try {
-    const equipments = await Equipment.findAll()
-    const hydratedEquipments = await Promise.all(equipments.map(enrichEquipment))
+    const pagination = parsePaginationQuery(req.query, {
+      allowedSortFields: ['id', 'name', 'type', 'status', 'code', 'serial', 'created_at', 'updated_at'],
+      defaultSort: { field: 'created_at', direction: 'DESC' },
+    })
+    const { count, rows } = await Equipment.findAndCountAll({
+      limit: pagination.limit,
+      offset: pagination.offset,
+      order: pagination.order,
+    })
+    const hydratedEquipments = await Promise.all(rows.map(enrichEquipment))
+
     return success(res, 200, 'Obteniendo equipos', {
       equipments: hydratedEquipments,
+      meta: buildPaginationMeta({
+        page: pagination.page,
+        limit: pagination.limit,
+        total: count,
+        sort: pagination.sort,
+        returned: hydratedEquipments.length,
+      }),
     })
   } catch (error) {
+    if (error instanceof PaginationQueryError) {
+      return failure(res, 400, error.message, { equipments: [], meta: null })
+    }
+
     return failure(res, 500, 'No fue posible obtener equipos', {
       equipments: [],
+      meta: null,
     })
   }
 }

@@ -773,12 +773,53 @@ Puntos concretos a alinear en frontend con el hardening actual:
 - modelar acciones de negocio como llamados dedicados a `approve`, `cancel`, `assign`, `start`, `complete`, `open` y `close`
 - deshabilitar botones de accion cuando el estado actual no permita la transicion para evitar `409`
 - tratar `approved`, `completed`, `cancelled` y `closed` como estados de solo lectura en sus formularios de edicion
+- consumir listados con `page`, `limit` y `sort`
+- leer `meta.pagination` para renderizar paginadores y totales
 
 Cambios que el frontend no necesita hacer:
 
 - no necesita migrar a cookies o sesion server-side
 - no necesita usar `username` para login; `email` sigue siendo el contrato preferido
 - no necesita cambiar payloads de `requests`, `orders` o `schedules` por el hardening reciente
+
+## Paginacion De Listados
+
+Los endpoints `GET` de coleccion ahora aceptan estos query params:
+
+- `page`: entero positivo, default `1`
+- `limit`: entero positivo, default `25`, maximo `100`
+- `sort`: `campo:ASC|DESC` o `-campo`
+
+Respuesta esperada:
+
+```json
+{
+  "status": true,
+  "msg": "Obteniendo clientes",
+  "clients": [],
+  "meta": {
+    "pagination": {
+      "page": 1,
+      "limit": 25,
+      "total": 42,
+      "total_pages": 2,
+      "returned": 25,
+      "has_next_page": true,
+      "has_previous_page": false
+    },
+    "sort": {
+      "field": "created_at",
+      "direction": "DESC"
+    }
+  }
+}
+```
+
+Notas operativas:
+
+- el array principal no cambia: `clients`, `equipments`, `users`, `requests`, `orders`, `schedules`, `roles`, `profiles`
+- el frontend debe dejar de asumir respuestas completas sin limite
+- si `sort` usa un campo no permitido o `page/limit` son invalidos, el backend responde `400`
 
 ## Protocolo De Cambio
 
@@ -790,7 +831,6 @@ Cambios que el frontend no necesita hacer:
 ## Limitaciones Actuales Del Contrato
 
 - no hay refresh token
-- no hay paginacion
 - `requests`, `orders` y `schedules` ya tienen filtros, acciones de dominio y politicas centralizadas; otros modulos siguen mayormente CRUD
 - no existe recurso propio para historial tecnico
 - no existe recurso propio para calificacion del servicio

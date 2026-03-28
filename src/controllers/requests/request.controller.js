@@ -14,6 +14,7 @@ const {
 const { DomainError, buildDomainErrorResponse } = require('../../domain/shared/domainError')
 const { Client, Equipment, Order, Request, User } = require('../../models')
 const { success, failure } = require('../../utils/apiResponse')
+const { PaginationQueryError, buildPaginationMeta, parsePaginationQuery } = require('../../utils/pagination')
 const { handleRequestError } = require('../../utils/requestError')
 const { pickAllowedFields, withCreateAudit, withUpdateAudit } = require('../../utils/payload')
 
@@ -240,22 +241,40 @@ const getRequestRecord = async (id, auth) => {
 
 const getRequests = async (req, res) => {
   try {
-    const requests = await Request.findAll({
-      where: await buildRequestWhere(req),
-      order: [['requested_at', 'DESC'], ['id', 'DESC']],
+    const pagination = parsePaginationQuery(req.query, {
+      allowedSortFields: ['id', 'requested_at', 'status', 'priority', 'type', 'created_at', 'updated_at'],
+      defaultSort: { field: 'requested_at', direction: 'DESC' },
     })
-    const hydratedRequests = await Promise.all(requests.map(enrichRequest))
+    const { count, rows } = await Request.findAndCountAll({
+      where: await buildRequestWhere(req),
+      limit: pagination.limit,
+      offset: pagination.offset,
+      order: pagination.order,
+    })
+    const hydratedRequests = await Promise.all(rows.map(enrichRequest))
 
     return success(res, 200, 'Obteniendo solicitudes', {
       requests: hydratedRequests,
+      meta: buildPaginationMeta({
+        page: pagination.page,
+        limit: pagination.limit,
+        total: count,
+        sort: pagination.sort,
+        returned: hydratedRequests.length,
+      }),
     })
   } catch (error) {
     if (error instanceof DomainError) {
       return buildDomainErrorResponse(res, error, 'requests')
     }
 
+    if (error instanceof PaginationQueryError) {
+      return failure(res, 400, error.message, { requests: [], meta: null })
+    }
+
     return failure(res, 500, 'No fue posible obtener solicitudes', {
       requests: [],
+      meta: null,
     })
   }
 }

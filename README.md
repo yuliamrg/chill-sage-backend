@@ -20,14 +20,14 @@ Lo que existe hoy:
 - rate limiting en `POST /api/users/login`
 - respuestas `500` saneadas para no exponer detalles internos
 - observabilidad minima con logs JSON, `X-Request-Id` y `GET /api/health`
+- paginacion uniforme en listados con `page`, `limit`, `sort` y `meta`
+- migraciones versionadas con `schema_migrations`
 
 Lo que aun no existe o sigue incompleto:
 
 - refresh token
 - historial tecnico dedicado
 - calificacion del servicio como recurso propio
-- paginacion
-- migraciones versionadas
 - permisos finos por ownership fuera de los modulos operativos ya endurecidos
 
 ## Dominio Operativo Implementado

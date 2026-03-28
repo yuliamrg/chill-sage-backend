@@ -43,7 +43,7 @@ Lo aun pendiente o parcial:
 - [x] endurecimiento de errores
 - [x] observabilidad minima
 - [x] migraciones versionadas
-- [ ] paginacion y metadatos
+- [x] paginacion y metadatos
 - [-] ampliacion adicional de cobertura fuera del nucleo operativo
 
 ## Checklist Operativa
@@ -242,7 +242,8 @@ Checklist:
 Evidencia actual:
 
 - existen pruebas de integracion para login, autorizacion y flujo operativo
-- `pnpm test` ejecutado con exito el `2026-03-28`: `5` suites y `19` tests en verde
+- existen pruebas adicionales para observabilidad, migraciones, hardening y paginacion
+- `pnpm test` ejecutado con exito el `2026-03-28`: `9` suites y `29` tests en verde
 
 Brecha actual:
 
@@ -271,21 +272,24 @@ Brecha actual:
 
 #### 11. Agregar paginacion y metadatos
 
-Estado: `[ ] pendiente`
+Estado: `[x] completo`
 
 Checklist:
 
-- [ ] agregar `page`, `limit` y `sort`
-- [ ] definir maximo de resultados
-- [ ] devolver metadata de paginacion
+- [x] agregar `page`, `limit` y `sort`
+- [x] definir maximo de resultados
+- [x] devolver metadata de paginacion
 
 Evidencia actual:
 
-- los listados siguen usando `findAll()` sin limite
+- los listados de `clients`, `equipments`, `users`, `requests`, `orders`, `schedules`, `roles` y `profiles` aceptan `page`, `limit` y `sort`
+- existe utilidad comun en `src/utils/pagination.js` con default `25` y maximo `100`
+- las respuestas de coleccion devuelven `meta.pagination` y `meta.sort`
+- existen pruebas de integracion del contrato de paginacion en `tests/integration/pagination.integration.test.js`
 
 Brecha actual:
 
-- riesgo de respuestas grandes, tiempos altos y consumo innecesario de memoria
+- sigue faltando decidir si algunos catalogos pequenos deben exponerse completos en endpoints separados tipo `select-options`
 
 ## Orden Recomendado De Ejecucion
 

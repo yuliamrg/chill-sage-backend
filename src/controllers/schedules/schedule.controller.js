@@ -11,6 +11,7 @@ const {
 const { DomainError, buildDomainErrorResponse } = require('../../domain/shared/domainError')
 const { Client, Equipment, Schedule, ScheduleEquipment } = require('../../models')
 const { success, failure } = require('../../utils/apiResponse')
+const { PaginationQueryError, buildPaginationMeta, parsePaginationQuery } = require('../../utils/pagination')
 const { handleRequestError } = require('../../utils/requestError')
 const { pickAllowedFields, withCreateAudit, withUpdateAudit } = require('../../utils/payload')
 
@@ -163,21 +164,39 @@ const getScheduleRecord = async (id) => {
 
 const getSchedules = async (req, res) => {
   try {
-    const schedules = await Schedule.findAll({
+    const pagination = parsePaginationQuery(req.query, {
+      allowedSortFields: ['id', 'scheduled_date', 'status', 'type', 'name', 'created_at', 'updated_at'],
+      defaultSort: { field: 'scheduled_date', direction: 'DESC' },
+    })
+    const { count, rows } = await Schedule.findAndCountAll({
       where: buildScheduleWhere(req),
-      order: [['scheduled_date', 'DESC'], ['id', 'DESC']],
+      limit: pagination.limit,
+      offset: pagination.offset,
+      order: pagination.order,
     })
 
     return success(res, 200, 'Obteniendo cronogramas', {
-      schedules: await Promise.all(schedules.map(hydrateSchedule)),
+      schedules: await Promise.all(rows.map(hydrateSchedule)),
+      meta: buildPaginationMeta({
+        page: pagination.page,
+        limit: pagination.limit,
+        total: count,
+        sort: pagination.sort,
+        returned: rows.length,
+      }),
     })
   } catch (error) {
     if (error instanceof DomainError) {
       return buildDomainErrorResponse(res, error, 'schedules')
     }
 
+    if (error instanceof PaginationQueryError) {
+      return failure(res, 400, error.message, { schedules: [], meta: null })
+    }
+
     return failure(res, 500, 'No fue posible obtener cronogramas', {
       schedules: [],
+      meta: null,
     })
   }
 }
