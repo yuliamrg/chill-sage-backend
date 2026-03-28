@@ -41,7 +41,7 @@ Lo aun pendiente o parcial:
 - [x] rate limiting de login
 - [x] CORS restringido por entorno
 - [x] endurecimiento de errores
-- [ ] observabilidad minima
+- [x] observabilidad minima
 - [ ] migraciones versionadas
 - [ ] paginacion y metadatos
 - [-] ampliacion adicional de cobertura fuera del nucleo operativo
@@ -203,22 +203,26 @@ Brecha actual:
 
 #### 8. Mejorar observabilidad
 
-Estado: `[ ] pendiente`
+Estado: `[x] completado`
 
 Checklist:
 
-- [ ] logger estructurado
-- [ ] request id por peticion
-- [ ] eventos relevantes de autenticacion y error registrados de forma consistente
-- [ ] endpoint de health check
+- [x] logger estructurado
+- [x] request id por peticion
+- [x] eventos relevantes de autenticacion y error registrados de forma consistente
+- [x] endpoint de health check
 
 Evidencia actual:
 
-- solo hay `console.log` y `console.error`
+- existe logging estructurado JSON en `src/observability/logger.js`
+- cada request recibe `X-Request-Id` via `src/observability/requestContext.js`
+- `GET /api/health` responde sin autenticacion
+- login, fallos de auth y errores no manejados quedan registrados con contexto y `requestId`
+- pruebas de integracion cubren `health check` y propagacion de `X-Request-Id`
 
 Brecha actual:
 
-- falta trazabilidad minima para operacion y diagnostico
+- la observabilidad sigue siendo minima: aun no hay agregacion externa, metricas, ni trazas distribuidas
 
 ### Prioridad 2
 
@@ -286,9 +290,9 @@ Brecha actual:
 2. rate limiting y endurecimiento de login
 3. manejo de errores
 4. CORS
-5. migraciones
-6. ampliacion de tests
-7. observabilidad
+5. observabilidad
+6. migraciones
+7. ampliacion de tests
 8. paginacion
 
 ## Criterio Minimo Para Decir "Listo Para Cliente"
@@ -302,6 +306,7 @@ Como minimo deberian estar completos:
 - [x] reglas de estado y acciones criticas controladas por endpoint
 - [x] errores endurecidos
 - [x] CORS restringido
+- [x] observabilidad minima
 - [x] pruebas basicas de login y de flujos operativos criticos
 
 ## Regla De Mantenimiento

@@ -1,4 +1,5 @@
 const { failure } = require('./apiResponse')
+const { buildRequestLogContext, logError, serializeError } = require('../observability/logger')
 
 const getValidationDetails = (error) => {
   if (!Array.isArray(error?.errors)) {
@@ -52,16 +53,13 @@ const buildHttpError = (status, message) => {
 }
 
 const logRequestError = (context, req, error) => {
-  console.error(`[${context}]`, {
-    method: req?.method,
-    path: req?.originalUrl,
+  logError(context, {
+    ...buildRequestLogContext(req),
     params: req?.params,
     query: req?.query,
     body: req?.body,
-    errorName: error?.name,
-    errorMessage: error?.message,
     validationErrors: getValidationDetails(error),
-    stack: error?.stack,
+    error: serializeError(error),
   })
 }
 

@@ -19,6 +19,7 @@ Lo que existe hoy:
 - CORS restringido por entorno para clientes web
 - rate limiting en `POST /api/users/login`
 - respuestas `500` saneadas para no exponer detalles internos
+- observabilidad minima con logs JSON, `X-Request-Id` y `GET /api/health`
 
 Lo que aun no existe o sigue incompleto:
 
@@ -133,6 +134,7 @@ Orden recomendado:
 - `DB_SYNC`: si vale `true`, `pnpm run db:ensure-schema` ejecuta `db.sync({ force: false })` antes del ensure operativo
 - `JWT_SECRET`: secreto para firmar tokens
 - `JWT_EXPIRES_IN`: duracion del access token. Default `8h`
+- `APP_NAME`: nombre logico del servicio para logs estructurados. Default `chillsage-backend`
 - `CORS_ORIGINS`: lista separada por comas con los origins permitidos para navegador
   Incluye por defecto `http://localhost:4200` y `http://127.0.0.1:4200` para desarrollo con `ng serve`.
 - `LOGIN_RATE_LIMIT_WINDOW_MS`: ventana del rate limit de login en milisegundos. Default `900000`
@@ -165,6 +167,9 @@ Comportamiento actual:
 - valida que `JWT_SECRET` exista antes de aceptar trafico
 - restringe CORS a los origins definidos en `CORS_ORIGINS`
 - aplica rate limiting a `POST /api/users/login`
+- agrega `X-Request-Id` a todas las respuestas
+- emite logs estructurados JSON para requests, autenticacion y errores
+- expone `GET /api/health` sin autenticacion para chequeo operativo
 - monta la API bajo `/api`
 
 `pnpm start` ya no modifica esquema ni crea datos base.
@@ -176,12 +181,14 @@ Si el frontend consume este backend desde navegador, debe alinearse con estas re
 - el origin del frontend debe estar incluido en `CORS_ORIGINS`
 - login puede responder `429` cuando excede `LOGIN_RATE_LIMIT_MAX` dentro de `LOGIN_RATE_LIMIT_WINDOW_MS`
 - el frontend no debe depender de mensajes internos en errores `500`; ahora recibe mensajes genericos
+- cada respuesta incluye `X-Request-Id`; el frontend puede reenviarlo para correlacion
 - la autenticacion sigue siendo por `Authorization: Bearer <access_token>`; no hay cookie de sesion ni refresh token
 
 Cambio esperado en frontend:
 
 - agregar manejo explicito de `429` en login y bloquear reintentos agresivos
 - mostrar mensaje de infraestructura o reintento para `500` sin intentar parsear detalle tecnico
+- conservar y reportar `X-Request-Id` cuando el usuario informe errores o fallos de integracion
 - verificar que `VITE_API_URL` o equivalente apunte al backend y que su origin este permitido por `CORS_ORIGINS`
 - si el frontend corre con `ng serve`, incluir `http://localhost:4200` y `http://127.0.0.1:4200` en `CORS_ORIGINS`
 
@@ -248,8 +255,9 @@ Recursos disponibles:
 Ruta publica adicional:
 
 - `POST /api/users/login`
+- `GET /api/health`
 
-Todos los endpoints bajo `/api` salvo login requieren `Authorization: Bearer <token>`.
+Todos los endpoints bajo `/api` salvo login y health requieren `Authorization: Bearer <token>`.
 
 El contrato operativo vigente esta documentado en:
 

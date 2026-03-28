@@ -81,4 +81,6 @@ Cambios de compatibilidad vigentes hoy:
 - para desarrollo con Angular CLI, incluir `http://localhost:4200` y `http://127.0.0.1:4200`
 - login puede responder `429` por rate limiting
 - los errores `500` ya no exponen detalle interno; frontend debe tratar `msg` como texto final para usuario o fallback tecnico generico
+- todas las respuestas incluyen `X-Request-Id` para soporte y correlacion
+- existe `GET /api/health` sin autenticacion para chequeo operativo basico
 - la autenticacion sigue siendo solo `Bearer token`

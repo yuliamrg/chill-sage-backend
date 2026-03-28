@@ -9,10 +9,13 @@ const { ensureJwtConfig } = require('./auth/jwt')
 const { buildCorsMiddleware, parseAllowedOrigins } = require('./security/cors')
 const { failure } = require('./utils/apiResponse')
 const { logRequestError } = require('./utils/requestError')
+const { logInfo, logWarn } = require('./observability/logger')
+const { attachRequestContext } = require('./observability/requestContext')
 
 const app = express()
 
 app.use(buildCorsMiddleware())
+app.use(attachRequestContext)
 app.use(express.json())
 app.use('/api', routes)
 
@@ -48,8 +51,14 @@ const initializeApp = async () => {
       ensureJwtConfig()
 
       if (parseAllowedOrigins().length === 0) {
-        console.warn('CORS_ORIGINS is empty. Browser requests with Origin header will be rejected.')
+        logWarn('app.cors.empty-origins', {
+          message: 'CORS_ORIGINS is empty. Browser requests with Origin header will be rejected.',
+        })
       }
+
+      logInfo('app.initialized', {
+        nodeEnv: process.env.NODE_ENV || 'development',
+      })
 
       return app
     })().catch((error) => {
@@ -66,8 +75,9 @@ const startServer = async (port = process.env.PORT || 3000) => {
 
   return new Promise((resolve) => {
     const server = app.listen(port, () => {
-      console.log('Database connected!')
-      console.log(`Server running on port ${port}`)
+      logInfo('app.server.started', {
+        port,
+      })
       resolve(server)
     })
   })

@@ -32,6 +32,7 @@ El puerto depende de `PORT` en `.env`. Si no existe, el backend usa `3000`.
 Ruta publica adicional:
 
 - `POST /users/login`
+- `GET /health`
 
 Todos los demas endpoints requieren:
 
@@ -45,6 +46,8 @@ El hardening reciente agrega estas condiciones de integracion:
   En desarrollo con Angular CLI, eso normalmente implica `http://localhost:4200` y `http://127.0.0.1:4200`.
 - `POST /users/login` puede responder `429` por rate limiting
 - las respuestas `500` ya no deben asumirse con detalle tecnico interno
+- toda respuesta incluye header `X-Request-Id`
+- el cliente puede enviar `X-Request-Id` y el backend lo reutiliza en la respuesta
 - la autenticacion sigue siendo solo por token Bearer en header; no hay cookies ni refresh token
 
 Checklist minima para frontend:
@@ -54,6 +57,7 @@ Checklist minima para frontend:
 - si se usa `ng serve`, registrar `http://localhost:4200` y `http://127.0.0.1:4200`
 - manejar `401`, `403`, `409`, `429` y `500` como estados esperados del contrato
 - no depender de mensajes de error internos ni de stacks
+- conservar `X-Request-Id` en logs del frontend o reportes de error si existe
 
 ## Estructura Base De Respuesta
 
@@ -116,6 +120,14 @@ La API responde con esta forma:
 }
 ```
 
+### Header de correlacion
+
+Todas las respuestas incluyen:
+
+```text
+X-Request-Id: <uuid-o-id-propagado>
+```
+
 ## Convenciones
 
 - los listados devuelven una llave plural
@@ -174,6 +186,7 @@ Respuesta actual:
 Comportamiento real:
 
 - `POST /users/login` es publico
+- `GET /health` es publico
 - todo el resto de rutas bajo `/api` requiere token Bearer
 - sin token valido el backend responde `401`
 - con token valido pero sin permiso suficiente responde `403`

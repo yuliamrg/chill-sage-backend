@@ -8,6 +8,7 @@ const { handleRequestError, logRequestError } = require('../../utils/requestErro
 const { signAccessToken, getJwtExpiresIn } = require('../../auth/jwt')
 const { ROLE_IDS, ROLE_NAMES } = require('../../auth/roles')
 const { pickAllowedFields, withCreateAudit, withUpdateAudit } = require('../../utils/payload')
+const { buildRequestLogContext, logInfo, logWarn } = require('../../observability/logger')
 
 const USER_CREATE_FIELDS = ['username', 'name', 'last_name', 'email', 'password', 'client', 'role', 'status']
 const USER_UPDATE_FIELDS = ['username', 'name', 'last_name', 'email', 'password', 'client', 'role', 'status']
@@ -55,6 +56,7 @@ const login = async (req, res) => {
     }
 
     if (!password || loginCandidates.length === 0) {
+      logWarn('auth.login.invalid-payload', buildRequestLogContext(req))
       return failure(res, 400, 'Debes enviar email o username junto con la contrasena', { user: null })
     }
 
@@ -65,15 +67,28 @@ const login = async (req, res) => {
     })
 
     if (!user) {
+      logWarn('auth.login.user-not-found', {
+        ...buildRequestLogContext(req),
+        email: email || undefined,
+        username: username || undefined,
+      })
       return failure(res, 401, 'Usuario no encontrado', { user: null })
     }
 
     const isPasswordValid = await bcrypt.compare(password, user.password)
     if (!isPasswordValid) {
+      logWarn('auth.login.invalid-password', {
+        ...buildRequestLogContext(req),
+        authUserId: user.id,
+      })
       return failure(res, 401, 'Contrasena incorrecta', { user: null })
     }
 
     if (user.status !== 'active') {
+      logWarn('auth.login.inactive-user', {
+        ...buildRequestLogContext(req),
+        authUserId: user.id,
+      })
       return failure(res, 401, 'Usuario inactivo', { user: null })
     }
 
@@ -82,6 +97,12 @@ const login = async (req, res) => {
       userId: user.id,
       roleId: user.role,
       roleName: enrichedUser.role_name,
+    })
+
+    logInfo('auth.login.success', {
+      ...buildRequestLogContext(req),
+      authUserId: user.id,
+      roleId: user.role,
     })
 
     return success(res, 200, 'Inicio de sesion exitoso', {
