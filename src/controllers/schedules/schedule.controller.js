@@ -9,6 +9,11 @@ const {
   assertScheduleUpdateAllowed,
 } = require('../../domain/operations/schedulePolicy')
 const { DomainError, buildDomainErrorResponse } = require('../../domain/shared/domainError')
+const {
+  assertAccessibleClientFilter,
+  assertClientAccess,
+  buildScopedClientWhere,
+} = require('../../auth/scope')
 const { Client, Equipment, Schedule, ScheduleEquipment } = require('../../models')
 const { success, failure } = require('../../utils/apiResponse')
 const { PaginationQueryError, buildPaginationMeta, parsePaginationQuery } = require('../../utils/pagination')
@@ -112,7 +117,9 @@ const hydrateSchedule = async (schedule) => {
 }
 
 const buildScheduleWhere = (req) => {
-  const where = {}
+  const where = buildScopedClientWhere(req.auth, 'client_id')
+
+  assertAccessibleClientFilter(req.auth, req.query.client_id)
 
   if (req.query.client_id) {
     where.client_id = Number(req.query.client_id)
@@ -208,6 +215,7 @@ const createSchedule = async (req, res) => {
     const equipmentIds = normalizeEquipmentIds(req.body.equipment_ids)
 
     payload.scheduled_date = parseDateValue(payload.scheduled_date, 'scheduled_date')
+    assertClientAccess(req.auth, payload.client_id)
     await validateSchedulePayload(payload, equipmentIds)
 
     const scheduleCreate = await Schedule.create(
@@ -244,6 +252,7 @@ const createSchedule = async (req, res) => {
 const getScheduleById = async (req, res) => {
   try {
     const schedule = await getScheduleRecord(req.params.id)
+    assertClientAccess(req.auth, schedule.client_id, 'Cronograma no encontrado')
 
     return success(res, 200, 'Cronograma encontrado', {
       schedule: await hydrateSchedule(schedule),
@@ -262,6 +271,7 @@ const getScheduleById = async (req, res) => {
 const updateSchedule = async (req, res) => {
   try {
     const schedule = await getScheduleRecord(req.params.id)
+    assertClientAccess(req.auth, schedule.client_id, 'Cronograma no encontrado')
     assertScheduleUpdateAllowed({ schedule, payload: req.body })
     const payload = pickAllowedFields(req.body, SCHEDULE_FIELDS)
     const current = schedule.toJSON()
@@ -307,6 +317,7 @@ const updateSchedule = async (req, res) => {
 const openSchedule = async (req, res) => {
   try {
     const schedule = await getScheduleRecord(req.params.id)
+    assertClientAccess(req.auth, schedule.client_id, 'Cronograma no encontrado')
     assertScheduleActionAllowed({
       action: SCHEDULE_ACTIONS.OPEN,
       schedule,
@@ -343,6 +354,7 @@ const openSchedule = async (req, res) => {
 const closeSchedule = async (req, res) => {
   try {
     const schedule = await getScheduleRecord(req.params.id)
+    assertClientAccess(req.auth, schedule.client_id, 'Cronograma no encontrado')
     assertScheduleActionAllowed({
       action: SCHEDULE_ACTIONS.CLOSE,
       schedule,
@@ -383,6 +395,8 @@ const destroySchedule = async (req, res) => {
     if (!schedule) {
       return failure(res, 404, 'Cronograma no encontrado', { schedule: null })
     }
+
+    assertClientAccess(req.auth, schedule.client_id, 'Cronograma no encontrado')
 
     await ScheduleEquipment.destroy({ where: { schedule_id: schedule.id } })
     await schedule.destroy()

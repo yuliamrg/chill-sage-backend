@@ -42,6 +42,11 @@ User.init(
         key: 'id',
       },
     },
+    all_clients: {
+      type: DataTypes.BOOLEAN,
+      allowNull: false,
+      defaultValue: false,
+    },
     role: {
       type: DataTypes.INTEGER,
       allowNull: false,

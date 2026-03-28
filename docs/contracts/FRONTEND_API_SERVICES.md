@@ -51,25 +51,38 @@ Todos los demas endpoints requieren:
 - toda respuesta incluye `X-Request-Id`
 - la autenticacion sigue siendo solo por Bearer token en header
 - `requests`, `orders` y `schedules` usan endpoints de accion para cambios de estado
-- `users`, `clients` y `equipments` ya no deben tratarse como CRUD libre para todos los roles con acceso de lectura
+- los recursos con `client_id` o `client` quedan filtrados por cobertura del usuario
+- detalle fuera de cobertura responde `404`
+- filtros explicitos por cliente fuera de cobertura responden `403`
 
 ## Matriz Inicial De Acceso
 
-- `admin`: acceso total
-- `planeador`: operacion completa sin `DELETE` en recursos operativos
-- `tecnico`: lectura operativa y ejecucion de sus ordenes asignadas
-- `solicitante`: crear y consultar solicitudes; consultar ordenes dentro de su alcance
+- `admin_plataforma`: acceso global total
+- `admin_cliente`: administracion completa dentro de sus clientes asignados
+- `planeador`: operacion dentro de sus clientes asignados
+- `tecnico`: lectura y ejecucion dentro de sus clientes asignados
+- `solicitante`: crear y consultar dentro de sus clientes asignados
 
 Detalle real:
 
-- `users`: lectura `admin`, `planeador`; create/update/delete solo `admin`
-- `roles`: `GET` para `admin` y `planeador`; escritura solo `admin`
-- `profiles`: `GET` para `admin` y `planeador`; escritura solo `admin`
-- `clients`: lectura `admin`, `planeador`, `tecnico`; create/update `admin`, `planeador`; delete solo `admin`
-- `equipments`: lectura `admin`, `planeador`, `tecnico`; create/update `admin`, `planeador`; delete solo `admin`
-- `requests`: lectura `admin`, `planeador`, `tecnico`, `solicitante`; create `admin`, `planeador`, `solicitante`; update `admin`, `planeador`; approve/cancel `admin`, `planeador`; delete solo `admin`
-- `orders`: lectura `admin`, `planeador`, `tecnico`, `solicitante`; create/update/assign/cancel `admin`, `planeador`; start/complete `admin`, `planeador`, `tecnico`; delete solo `admin`
-- `schedules`: lectura `admin`, `planeador`, `tecnico`; create/update/open/close `admin`, `planeador`; delete solo `admin`
+- `users`: lectura `admin_plataforma`, `admin_cliente`, `planeador`; create/update/delete `admin_plataforma`, `admin_cliente`
+- `roles`: `GET` para `admin_plataforma`, `admin_cliente`; escritura solo `admin_plataforma`
+- `profiles`: `GET` para `admin_plataforma`, `admin_cliente`; escritura solo `admin_plataforma`
+- `clients`: lectura `admin_plataforma`, `admin_cliente`, `planeador`, `tecnico`; create solo `admin_plataforma`; update `admin_plataforma`, `admin_cliente`, `planeador`; delete solo `admin_plataforma`
+- `equipments`: lectura `admin_plataforma`, `admin_cliente`, `planeador`, `tecnico`; create/update `admin_plataforma`, `admin_cliente`, `planeador`; delete `admin_plataforma`, `admin_cliente`
+- `requests`: lectura `admin_plataforma`, `admin_cliente`, `planeador`, `tecnico`, `solicitante`; create `admin_plataforma`, `admin_cliente`, `planeador`, `solicitante`; update `admin_plataforma`, `admin_cliente`, `planeador`; approve/cancel `admin_plataforma`, `admin_cliente`, `planeador`; delete `admin_plataforma`, `admin_cliente`
+- `orders`: lectura `admin_plataforma`, `admin_cliente`, `planeador`, `tecnico`, `solicitante`; create/update/assign/cancel `admin_plataforma`, `admin_cliente`, `planeador`; start/complete `admin_plataforma`, `admin_cliente`, `planeador`, `tecnico`; delete `admin_plataforma`, `admin_cliente`
+- `schedules`: lectura `admin_plataforma`, `admin_cliente`, `planeador`, `tecnico`; create/update/open/close `admin_plataforma`, `admin_cliente`, `planeador`; delete `admin_plataforma`, `admin_cliente`
+
+## Cobertura Por Cliente
+
+- `admin_plataforma` ignora scope por cliente
+- `admin_cliente`, `planeador`, `tecnico` y `solicitante` operan con `primary_client_id`, `client_ids` y `all_clients`
+- `all_clients=true` habilita acceso a todos los clientes para ese usuario
+- cuando `all_clients=false`, el usuario solo ve y opera sobre `client_ids`
+- `primary_client_id` es obligatorio para cualquier usuario no plataforma
+- si una accion requiere cliente y el payload no envia `client_id`, el backend intenta usar `primary_client_id`
+- si no hay `primary_client_id` valido, la operacion responde `400`
 
 ## Llaves De Payload
 
@@ -139,10 +152,11 @@ Checklist de integracion vigente:
 
 - usar `email` como identificador de login
 - asegurar que el frontend este incluido en `CORS_ORIGINS`
-- manejar `401`, `403`, `409`, `429` y `500` como estados esperados
+- manejar `401`, `403`, `404`, `409`, `429` y `500` como estados esperados
 - no depender de stacks ni mensajes internos para errores `500`
 - seguir enviando `Authorization: Bearer <token>` en rutas privadas
 - conservar `X-Request-Id` en logs o reportes de error
+- modelar usuarios con `primary_client_id`, `client_ids` y `all_clients`
 - quitar selects libres de `status` en `requests`, `orders` y `schedules`
 - modelar transiciones con `approve`, `cancel`, `assign`, `start`, `complete`, `open` y `close`
 - deshabilitar botones de accion cuando el estado actual no permita la transicion
@@ -167,7 +181,7 @@ Detalle por recurso:
 ## Limitaciones Actuales Del Contrato
 
 - no hay refresh token
-- `requests`, `orders`, `schedules`, `equipments`, `clients` y `users` ya no deben tratarse como CRUD libre en frontend aunque sigan exponiendo rutas base
+- `requests`, `orders`, `schedules`, `equipments`, `clients` y `users` no deben tratarse como CRUD libre en frontend aunque mantengan rutas base
 - no existe recurso propio para historial tecnico
 - no existe recurso propio para calificacion del servicio
-- sigue existiendo borrado fisico como operacion excepcional reservada a `admin`
+- sigue existiendo borrado fisico como operacion excepcional reservada a roles administrativos

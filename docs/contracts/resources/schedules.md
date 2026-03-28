@@ -31,19 +31,6 @@ Fecha de referencia: `2026-03-28`
 - `equipment_ids`
 - `equipments`
 
-`equipments` se devuelve como arreglo resumido:
-
-```json
-[
-  {
-    "id": 22,
-    "name": "Chiller piso 3",
-    "code": "EQ-003",
-    "status": "active"
-  }
-]
-```
-
 ## Create
 
 Payload de referencia:
@@ -68,7 +55,7 @@ Campos permitidos:
 - `type`
 - `scheduled_date`
 - `description`
-- `equipment_ids` opcional para reemplazar relaciones
+- `equipment_ids`
 
 Restricciones:
 
@@ -84,34 +71,8 @@ Restricciones:
 
 ## Acciones
 
-`POST /schedules/:id/open`
-
-Payload:
-
-```json
-{}
-```
-
-Reglas:
-
-- cambia `status` a `open`
-- solo funciona desde `unassigned`
-- falla si ya estaba abierto
-- no permite reabrir cronogramas `closed`
-
-`POST /schedules/:id/close`
-
-Payload:
-
-```json
-{}
-```
-
-Reglas:
-
-- cambia `status` a `closed`
-- solo funciona desde `open`
-- falla si ya estaba cerrado
+- `POST /schedules/:id/open`
+- `POST /schedules/:id/close`
 
 ## Filtros De Listado
 
@@ -123,9 +84,9 @@ Reglas:
 
 ## Reglas De Acceso
 
-- `GET`: `admin`, `planeador`, `tecnico`
-- `POST`, `PUT`, `open`, `close`: `admin`, `planeador`
-- `DELETE`: solo `admin`
+- `GET`: `admin_plataforma`, `admin_cliente`, `planeador`, `tecnico`
+- `POST`, `PUT`, `open`, `close`: `admin_plataforma`, `admin_cliente`, `planeador`
+- `DELETE`: `admin_plataforma`, `admin_cliente`
 
 ## Reglas De Negocio
 
@@ -133,10 +94,6 @@ Reglas:
 - todos los equipos deben existir
 - todos los equipos deben pertenecer al mismo cliente
 - no acepta equipos en estado `de_baja`, `retirado` o `retired`
-
-## Guia De Frontend
-
-- `unassigned`: permitir `PUT` y accion `open`
-- `open`: permitir `PUT` y accion `close`; no ofrecer `open` nuevamente
-- `closed`: solo lectura; bloquear `PUT`, `open` y `close`
-- no ofrecer `close` directamente desde `unassigned`
+- `GET /schedules` devuelve solo cronogramas dentro de cobertura
+- el filtro `?client_id=` fuera de cobertura responde `403`
+- `GET /schedules/:id` fuera de cobertura responde `404`

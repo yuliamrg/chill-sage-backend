@@ -70,7 +70,7 @@ const validateClientPayload = (payload) => {
 }
 
 const assertClientUpdateAllowed = ({ client, payload, roleName }) => {
-  if (roleName === ROLE_NAMES.ADMIN) {
+  if (roleName === ROLE_NAMES.ADMIN_PLATAFORMA || roleName === ROLE_NAMES.ADMIN_CLIENTE) {
     return
   }
 

@@ -54,9 +54,7 @@ Payload de referencia:
   "request_id": 15,
   "assigned_user_id": 7,
   "planned_start_at": "2026-03-22T14:00:00.000Z",
-  "diagnosis": "Pendiente de inspeccion",
-  "closure_notes": null,
-  "received_satisfaction": null
+  "diagnosis": "Pendiente de inspeccion"
 }
 ```
 
@@ -64,7 +62,7 @@ Notas:
 
 - `request_id` es obligatorio
 - la orden hereda `client_id`, `equipment_id` y `type` desde la solicitud
-- si se envia `assigned_user_id`, debe pertenecer a un usuario tecnico activo
+- si se envia `assigned_user_id`, debe pertenecer a un usuario tecnico activo con cobertura sobre el cliente de la orden
 - la orden nace en `assigned`
 
 ## Update
@@ -103,12 +101,6 @@ Payload:
 }
 ```
 
-Reglas:
-
-- exige `assigned_user_id`
-- solo permite usuarios tecnicos activos
-- no aplica sobre ordenes `completed` o `cancelled`
-
 `POST /orders/:id/start`
 
 Payload:
@@ -118,13 +110,6 @@ Payload:
   "started_at": "2026-03-22T14:10:00.000Z"
 }
 ```
-
-Reglas:
-
-- solo inicia ordenes `assigned`
-- exige tecnico asignado
-- si el actor es `tecnico`, debe ser el tecnico asignado
-- si no se envia `started_at`, backend usa fecha actual
 
 `POST /orders/:id/complete`
 
@@ -141,15 +126,6 @@ Payload:
 }
 ```
 
-Reglas:
-
-- solo completa ordenes `in_progress`
-- si el actor es `tecnico`, debe ser el tecnico asignado
-- exige `work_description`
-- exige `worked_hours`
-- exige `started_at` existente
-- valida que `finished_at` no sea anterior a `started_at`
-
 `POST /orders/:id/cancel`
 
 Payload:
@@ -159,12 +135,6 @@ Payload:
   "cancel_reason": "Solicitud duplicada"
 }
 ```
-
-Reglas:
-
-- exige `cancel_reason`
-- no permite cancelar una orden `completed`
-- falla si la orden ya estaba `cancelled`
 
 ## Filtros De Listado
 
@@ -178,23 +148,18 @@ Reglas:
 
 ## Reglas De Acceso
 
-- `GET`: `admin`, `planeador`, `tecnico`, `solicitante`
-- `POST`, `PUT`, `assign`, `cancel`: `admin`, `planeador`
-- `start`, `complete`: `admin`, `planeador`, `tecnico`
-- `DELETE`: solo `admin`
+- `GET`: `admin_plataforma`, `admin_cliente`, `planeador`, `tecnico`, `solicitante`
+- `POST`, `PUT`, `assign`, `cancel`: `admin_plataforma`, `admin_cliente`, `planeador`
+- `start`, `complete`: `admin_plataforma`, `admin_cliente`, `planeador`, `tecnico`
+- `DELETE`: `admin_plataforma`, `admin_cliente`
 
 ## Reglas De Negocio
 
 - solo se crea desde una `request` en `approved`
 - una `request` no puede tener mas de una `order` activa
-- `tecnico` solo puede consultar sus ordenes asignadas
-- `solicitante` solo puede consultar ordenes derivadas de sus solicitudes o de su cliente
+- `GET /orders` devuelve solo ordenes dentro de cobertura
+- el filtro `?client_id=` fuera de cobertura responde `403`
+- `GET /orders/:id` fuera de cobertura responde `404`
+- `tecnico` solo puede consultar sus ordenes asignadas y solo puede `start` o `complete` si es el tecnico asignado
+- `solicitante` solo puede consultar ordenes derivadas de sus solicitudes
 - `cancel` solo aplica sobre ordenes `assigned` o `in_progress`
-
-## Guia De Frontend
-
-- `assigned`: permitir `assign`, `start`, `cancel` y edicion administrativa por `PUT`
-- `in_progress`: permitir `complete` y `cancel`; bloquear `assign` y evitar editar campos de cierre por `PUT`
-- `completed`: solo lectura; no ofrecer `PUT`, `assign`, `start`, `complete` ni `cancel`
-- `cancelled`: solo lectura; no ofrecer acciones adicionales
-- si el actor es `tecnico`, solo mostrar `start` y `complete` cuando la orden este asignada a ese mismo tecnico

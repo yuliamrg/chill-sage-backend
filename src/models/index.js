@@ -2,9 +2,11 @@ const Client = require('./Clients/Client.model')
 const Equipment = require('./Equipments/Equipment.model')
 const Order = require('./Orders/Order.model')
 const Request = require('./Requests/request.model')
+const Role = require('./Roles/Role.model')
 const Schedule = require('./Schedules/Schedule.model')
 const ScheduleEquipment = require('./Schedules/ScheduleEquipment.model')
 const User = require('./Users/User.model')
+const UserClientScope = require('./Users/UserClientScope.model')
 
 let initialized = false
 
@@ -14,6 +16,20 @@ const initializeModelAssociations = () => {
   }
 
   Equipment.belongsTo(Client, { foreignKey: 'client', as: 'clientRecord' })
+  User.belongsTo(Client, { foreignKey: 'client', as: 'primaryClient' })
+  User.belongsTo(Role, { foreignKey: 'role', as: 'roleRecord' })
+  User.belongsToMany(Client, {
+    through: UserClientScope,
+    foreignKey: 'user_id',
+    otherKey: 'client_id',
+    as: 'scopeClients',
+  })
+  Client.belongsToMany(User, {
+    through: UserClientScope,
+    foreignKey: 'client_id',
+    otherKey: 'user_id',
+    as: 'scopedUsers',
+  })
 
   Request.belongsTo(Client, { foreignKey: 'client_id', as: 'client' })
   Request.belongsTo(User, { foreignKey: 'requester_user_id', as: 'requester' })
@@ -51,5 +67,6 @@ module.exports = {
   Schedule,
   ScheduleEquipment,
   User,
+  UserClientScope,
   initializeModelAssociations,
 }

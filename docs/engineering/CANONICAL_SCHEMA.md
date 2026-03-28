@@ -16,6 +16,7 @@ Este documento define el esquema oficial de base de datos que el backend actual 
 - `roles`
 - `profiles`
 - `clients`
+- `user_client_scopes`
 - `equipments`
 
 ### Flujo operativo
@@ -29,6 +30,9 @@ Este documento define el esquema oficial de base de datos que el backend actual 
 
 - `users.role -> roles.id`
 - `users.client -> clients.id`
+- `users.all_clients -> boolean`
+- `user_client_scopes.user_id -> users.id`
+- `user_client_scopes.client_id -> clients.id`
 - `equipments.client -> clients.id`
 - `requests.client_id -> clients.id`
 - `requests.requester_user_id -> users.id`
@@ -41,6 +45,13 @@ Este documento define el esquema oficial de base de datos que el backend actual 
 - `schedule_equipments.schedule_id -> schedules.id`
 - `schedule_equipments.equipment_id -> equipments.id`
 
+## Modelo De Cobertura
+
+- `users.client` se conserva como cliente primario persistente
+- `user_client_scopes` es la tabla canonica de cobertura multi-cliente
+- `users.all_clients=true` concede acceso total por cliente al usuario
+- `admin_plataforma` es el unico rol que puede existir sin cobertura por cliente
+
 ## Equivalencias Con Legado
 
 Las siguientes tablas en espanol existieron como esquema previo o de documentacion historica:
@@ -49,6 +60,7 @@ Las siguientes tablas en espanol existieron como esquema previo o de documentaci
 | --- | --- |
 | `users` | `usuarios` |
 | `clients` | `clientes` |
+| `user_client_scopes` | `usuarios_clientes` |
 | `equipments` | `equipos` |
 | `requests` | `solicitudes` |
 | `orders` | `ordenes_trabajo` |
@@ -57,7 +69,6 @@ Las siguientes tablas en espanol existieron como esquema previo o de documentaci
 
 Tambien existieron tablas legacy sin integracion actual en el backend:
 
-- `usuarios_clientes`
 - `calificaciones_servicio`
 - `brands`
 

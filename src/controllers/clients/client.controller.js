@@ -5,6 +5,10 @@ const Request = require('../../models/Requests/request.model')
 const Schedule = require('../../models/Schedules/Schedule.model')
 const User = require('../../models/Users/User.model')
 const {
+  assertClientAccess,
+  buildScopedClientWhere,
+} = require('../../auth/scope')
+const {
   assertClientDeleteAllowed,
   assertClientRequiredFields,
   assertClientUpdateAllowed,
@@ -25,6 +29,7 @@ const getClients = async (req, res) => {
       defaultSort: { field: 'created_at', direction: 'DESC' },
     })
     const { count, rows } = await Client.findAndCountAll({
+      where: buildScopedClientWhere(req.auth, 'id'),
       limit: pagination.limit,
       offset: pagination.offset,
       order: pagination.order,
@@ -88,10 +93,16 @@ const getClientById = async (req, res) => {
       return failure(res, 404, 'Cliente no encontrado', { client: null })
     }
 
+    assertClientAccess(req.auth, client.id, 'Cliente no encontrado')
+
     return success(res, 200, 'Cliente encontrado', {
       client,
     })
   } catch (error) {
+    if (error instanceof DomainError) {
+      return buildDomainErrorResponse(res, error, 'client')
+    }
+
     return failure(res, 500, 'No fue posible obtener el cliente', {
       client: null,
     })
@@ -106,6 +117,8 @@ const updateClient = async (req, res) => {
     if (!client) {
       return failure(res, 404, 'Cliente no encontrado', { client: null })
     }
+
+    assertClientAccess(req.auth, client.id, 'Cliente no encontrado')
 
     const payload = buildClientPayload(pickAllowedFields(req.body, CLIENT_FIELDS))
     const nextPayload = {
@@ -145,6 +158,8 @@ const destroyClient = async (req, res) => {
     if (!client) {
       return failure(res, 404, 'Cliente no encontrado', { client: null })
     }
+
+    assertClientAccess(req.auth, client.id, 'Cliente no encontrado')
 
     const [users, equipments, requests, orders, schedules] = await Promise.all([
       User.count({ where: { client: client.id } }),

@@ -61,7 +61,7 @@ Notas:
 
 - `requester_user_id` es forzado al usuario autenticado si el actor es `solicitante`
 - si no se envia `requester_user_id`, el backend usa el usuario autenticado
-- si no se envia `client_id`, el backend intenta usar el `client` del usuario autenticado
+- si no se envia `client_id`, el backend intenta usar el `primary_client_id` del usuario autenticado
 - `type` default: `corrective`
 - `priority` default: `medium`
 - `status` nace en `pending`
@@ -104,14 +104,6 @@ Payload:
 }
 ```
 
-Efectos:
-
-- cambia `status` a `approved`
-- fija `reviewed_at`
-- fija `reviewed_by_user_id`
-- limpia `cancel_reason`
-- solo funciona si la solicitud sigue en `pending`
-
 `POST /requests/:id/cancel`
 
 Payload:
@@ -122,13 +114,6 @@ Payload:
   "review_notes": "No procede"
 }
 ```
-
-Efectos:
-
-- cambia `status` a `cancelled`
-- exige `cancel_reason`
-- solo funciona si la solicitud sigue en `pending`
-- falla si la solicitud ya genero una orden
 
 ## Filtros De Listado
 
@@ -142,21 +127,18 @@ Efectos:
 
 ## Reglas De Acceso
 
-- `GET`: `admin`, `planeador`, `tecnico`, `solicitante`
-- `POST`: `admin`, `planeador`, `solicitante`
-- `PUT`: `admin`, `planeador`
-- `approve` y `cancel`: `admin`, `planeador`
-- `DELETE`: solo `admin`
+- `GET`: `admin_plataforma`, `admin_cliente`, `planeador`, `tecnico`, `solicitante`
+- `POST`: `admin_plataforma`, `admin_cliente`, `planeador`, `solicitante`
+- `PUT`: `admin_plataforma`, `admin_cliente`, `planeador`
+- `approve` y `cancel`: `admin_plataforma`, `admin_cliente`, `planeador`
+- `DELETE`: `admin_plataforma`, `admin_cliente`
 
 ## Reglas De Negocio
 
 - el equipo debe pertenecer al cliente indicado
 - el solicitante asociado debe existir y estar activo
-- `solicitante` solo puede consultar sus solicitudes o las de su cliente
+- `GET /requests` devuelve solo solicitudes dentro de cobertura
+- el filtro `?client_id=` fuera de cobertura responde `403`
+- `GET /requests/:id` fuera de cobertura responde `404`
+- `solicitante` solo puede consultar sus solicitudes
 - si la solicitud ya no esta en `pending`, frontend debe tratarla como solo lectura
-
-## Guia De Frontend
-
-- `pending`: permitir `editar`, `approve` y `cancel` segun rol
-- `approved`: mostrar datos de revision y habilitar crear orden si el rol lo permite; bloquear `PUT`
-- `cancelled`: solo lectura; no ofrecer `approve`, `cancel` ni crear orden

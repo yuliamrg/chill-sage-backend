@@ -28,7 +28,8 @@ describe('users integration', () => {
         last_name: '  User  ',
         email: `  strict.user.${suffix}@example.com  `,
         password,
-        client: ctx.clientA.id,
+        primary_client_id: ctx.clientA.id,
+        client_ids: [ctx.clientA.id],
         role: ROLE_IDS.TECNICO,
         user_created_id: ctx.extraTechUser.id,
       })
@@ -38,8 +39,9 @@ describe('users integration', () => {
     expect(response.body.user.name).toBe('Strict')
     expect(response.body.user.last_name).toBe('User')
     expect(response.body.user.email).toBe(`strict.user.${suffix}@example.com`)
-    expect(response.body.user.client).toBe(ctx.clientA.id)
-    expect(response.body.user.client_name).toBe(ctx.clientA.name)
+    expect(response.body.user.primary_client_id).toBe(ctx.clientA.id)
+    expect(response.body.user.primary_client_name).toBe(ctx.clientA.name)
+    expect(response.body.user.client_ids).toEqual([ctx.clientA.id])
     expect(response.body.user.role).toBe(ROLE_IDS.TECNICO)
     expect(response.body.user.status).toBe('active')
     expect(response.body.user.user_created_id).not.toBe(ctx.extraTechUser.id)
@@ -92,11 +94,12 @@ describe('users integration', () => {
         email: `invalid-rel.${uniqueSuffix()}@example.com`,
         password: getFallbackPassword(),
         role: 999999,
-        client: 999999,
+        primary_client_id: 999999,
+        client_ids: [999999],
       })
 
     expect(response.status).toBe(400)
-    expect(response.body.msg).toMatch(/cliente asociado no existe|rol asociado no existe/i)
+    expect(response.body.msg).toMatch(/clientes asociados no existen|rol asociado no existe/i)
   })
 
   test('create rejects duplicate username values', async () => {
@@ -107,6 +110,8 @@ describe('users integration', () => {
         username: ctx.extraTechUser.username,
         email: `dup-user-${uniqueSuffix()}@example.com`,
         password: getFallbackPassword(),
+        primary_client_id: ctx.clientA.id,
+        client_ids: [ctx.clientA.id],
       })
 
     expect(response.status).toBe(409)
@@ -167,7 +172,8 @@ describe('users integration', () => {
       suffix: `orphan-${uniqueSuffix()}`,
       password: getFallbackPassword(),
       overrides: {
-        client: ctx.clientB.id,
+        primary_client_id: ctx.clientB.id,
+        client_ids: [ctx.clientB.id],
         role: ROLE_IDS.SOLICITANTE,
       },
     })

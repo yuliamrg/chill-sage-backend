@@ -35,6 +35,38 @@ const parseOptionalInteger = (value) => {
   return Number.isInteger(parsed) ? parsed : value
 }
 
+const parseClientIdList = (value) => {
+  if (value === null || value === undefined || value === '') {
+    return []
+  }
+
+  if (!Array.isArray(value)) {
+    return value
+  }
+
+  return [...new Set(value.map((item) => Number(item)).filter((item) => Number.isInteger(item) && item > 0))].sort((a, b) => a - b)
+}
+
+const parseBooleanFlag = (value) => {
+  if (typeof value === 'boolean') {
+    return value
+  }
+
+  if (typeof value === 'string') {
+    const normalized = value.trim().toLowerCase()
+
+    if (normalized === 'true') {
+      return true
+    }
+
+    if (normalized === 'false') {
+      return false
+    }
+  }
+
+  return Boolean(value)
+}
+
 const assertRequiredTextField = (payload, fieldName) => {
   if (!payload[fieldName] || typeof payload[fieldName] !== 'string' || !payload[fieldName].trim()) {
     throw new DomainError(400, `El usuario requiere ${fieldName}`)
@@ -56,12 +88,20 @@ const buildUserPayload = (payload) => {
     }
   }
 
-  if (Object.prototype.hasOwnProperty.call(nextPayload, 'client')) {
-    nextPayload.client = parseOptionalInteger(nextPayload.client)
+  if (Object.prototype.hasOwnProperty.call(nextPayload, 'primary_client_id')) {
+    nextPayload.primary_client_id = parseOptionalInteger(nextPayload.primary_client_id)
   }
 
   if (Object.prototype.hasOwnProperty.call(nextPayload, 'role')) {
     nextPayload.role = parseOptionalInteger(nextPayload.role)
+  }
+
+  if (Object.prototype.hasOwnProperty.call(nextPayload, 'client_ids')) {
+    nextPayload.client_ids = parseClientIdList(nextPayload.client_ids)
+  }
+
+  if (Object.prototype.hasOwnProperty.call(nextPayload, 'all_clients')) {
+    nextPayload.all_clients = parseBooleanFlag(nextPayload.all_clients)
   }
 
   return nextPayload
@@ -107,19 +147,69 @@ const validateUserPayload = (payload) => {
     assertValidPositiveInteger(payload.role, 'role')
   }
 
-  if (Object.prototype.hasOwnProperty.call(payload, 'client') && payload.client !== null) {
-    assertValidPositiveInteger(payload.client, 'client')
+  if (Object.prototype.hasOwnProperty.call(payload, 'primary_client_id') && payload.primary_client_id !== null) {
+    assertValidPositiveInteger(payload.primary_client_id, 'primary_client_id')
+  }
+
+  if (Object.prototype.hasOwnProperty.call(payload, 'client_ids')) {
+    if (!Array.isArray(payload.client_ids)) {
+      throw new DomainError(400, 'El usuario requiere client_ids como arreglo')
+    }
+
+    payload.client_ids.forEach((clientId) => {
+      assertValidPositiveInteger(clientId, 'client_id')
+    })
+  }
+
+  if (Object.prototype.hasOwnProperty.call(payload, 'all_clients') && typeof payload.all_clients !== 'boolean') {
+    throw new DomainError(400, 'El campo all_clients no es valido')
   }
 }
 
-const assertUserRelationsExist = async ({ Client, Role, clientId, roleId }) => {
-  const [client, role] = await Promise.all([
-    clientId ? Client.findByPk(clientId) : null,
+const assertUserScopeShape = ({ primaryClientId, clientIds = [], allClients = false, roleId }) => {
+  if (roleId === ROLE_IDS.ADMIN_PLATAFORMA) {
+    if (primaryClientId !== null) {
+      throw new DomainError(400, 'El admin_plataforma no debe tener cliente primario')
+    }
+
+    if (clientIds.length || allClients) {
+      throw new DomainError(400, 'El admin_plataforma no debe tener alcance por cliente')
+    }
+
+    return
+  }
+
+  if (!primaryClientId) {
+    throw new DomainError(400, 'El usuario requiere primary_client_id')
+  }
+
+  if (!allClients && !clientIds.length) {
+    throw new DomainError(400, 'El usuario requiere al menos un client_id asociado')
+  }
+
+  if (!allClients && !clientIds.includes(primaryClientId)) {
+    throw new DomainError(400, 'El primary_client_id debe pertenecer a client_ids')
+  }
+}
+
+const assertUserRelationsExist = async ({ Client, Role, primaryClientId, clientIds = [], roleId }) => {
+  const normalizedClientIds = [...new Set([primaryClientId, ...clientIds].filter(Boolean))]
+  const [clients, role] = await Promise.all([
+    normalizedClientIds.length
+      ? Client.findAll({
+          where: {
+            id: {
+              [Op.in]: normalizedClientIds,
+            },
+          },
+          attributes: ['id'],
+        })
+      : [],
     Role.findByPk(roleId),
   ])
 
-  if (clientId && !client) {
-    throw new DomainError(400, 'El cliente asociado no existe')
+  if (normalizedClientIds.length && clients.length !== normalizedClientIds.length) {
+    throw new DomainError(400, 'Uno o mas clientes asociados no existen')
   }
 
   if (!role) {
@@ -187,6 +277,8 @@ const resolveCreateDefaults = (payload) => ({
   ...payload,
   status: payload.status || 'active',
   role: payload.role || ROLE_IDS.SOLICITANTE,
+  client_ids: payload.client_ids || [],
+  all_clients: payload.all_clients || false,
 })
 
 module.exports = {
@@ -194,6 +286,7 @@ module.exports = {
   assertUserDeleteAllowed,
   assertUserPersistedRequiredFields,
   assertUserRelationsExist,
+  assertUserScopeShape,
   assertUserUniqueFields,
   assertUserUpdateAllowed,
   buildUserPayload,

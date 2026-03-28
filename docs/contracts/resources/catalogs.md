@@ -2,7 +2,7 @@
 
 Fecha de referencia: `2026-03-28`
 
-Estos recursos siguen expuestos principalmente como CRUD basico.
+Estos recursos siguen expuestos como catalogos administrativos simples.
 
 ## Endpoints Base
 
@@ -19,8 +19,16 @@ Estos recursos siguen expuestos principalmente como CRUD basico.
 
 ## Acceso
 
-- `roles`: `GET` para `admin`, `planeador`; `POST`, `PUT`, `DELETE` solo `admin`
-- `profiles`: `GET` para `admin`, `planeador`; `POST`, `PUT`, `DELETE` solo `admin`
+- `roles`: `GET` para `admin_plataforma`, `admin_cliente`; `POST`, `PUT`, `DELETE` solo `admin_plataforma`
+- `profiles`: `GET` para `admin_plataforma`, `admin_cliente`; `POST`, `PUT`, `DELETE` solo `admin_plataforma`
+
+## Roles Base Vigentes
+
+- `admin_plataforma`
+- `admin_cliente`
+- `planeador`
+- `tecnico`
+- `solicitante`
 
 ## Nota
 

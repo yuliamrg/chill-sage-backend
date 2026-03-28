@@ -8,6 +8,11 @@ const {
   validateEquipmentPayload,
 } = require('../../domain/operations/equipmentPolicy')
 const { DomainError, buildDomainErrorResponse } = require('../../domain/shared/domainError')
+const {
+  assertAccessibleClientFilter,
+  assertClientAccess,
+  buildScopedClientWhere,
+} = require('../../auth/scope')
 const { success, failure } = require('../../utils/apiResponse')
 const { PaginationQueryError, buildPaginationMeta, parsePaginationQuery } = require('../../utils/pagination')
 const { handleRequestError } = require('../../utils/requestError')
@@ -31,11 +36,19 @@ const enrichEquipment = async (equipment) => {
 
 const getEquipments = async (req, res) => {
   try {
+    assertAccessibleClientFilter(req.auth, req.query.client)
     const pagination = parsePaginationQuery(req.query, {
       allowedSortFields: ['id', 'name', 'type', 'status', 'code', 'serial', 'created_at', 'updated_at'],
       defaultSort: { field: 'created_at', direction: 'DESC' },
     })
+    const where = buildScopedClientWhere(req.auth, 'client')
+
+    if (req.query.client) {
+      where.client = Number(req.query.client)
+    }
+
     const { count, rows } = await Equipment.findAndCountAll({
+      where,
       limit: pagination.limit,
       offset: pagination.offset,
       order: pagination.order,
@@ -73,10 +86,16 @@ const getEquipmentById = async (req, res) => {
       return failure(res, 404, 'Equipo no encontrado', { equipment: null })
     }
 
+    assertClientAccess(req.auth, equipment.client, 'Equipo no encontrado')
+
     return success(res, 200, 'Equipo encontrado', {
       equipment: await enrichEquipment(equipment),
     })
   } catch (error) {
+    if (error instanceof DomainError) {
+      return buildDomainErrorResponse(res, error, 'equipment')
+    }
+
     return failure(res, 500, 'No fue posible obtener el equipo', {
       equipment: null,
     })
@@ -88,6 +107,7 @@ const createEquipment = async (req, res) => {
     const payload = buildEquipmentPayload(pickAllowedFields(req.body, EQUIPMENT_FIELDS))
     assertEquipmentRequiredFields(payload)
     validateEquipmentPayload(payload)
+    assertClientAccess(req.auth, payload.client)
     await assertEquipmentClientExists(Client, payload.client)
 
     const equipmentCreate = await Equipment.create(withCreateAudit(payload, req.auth))
@@ -119,6 +139,8 @@ const updateEquipment = async (req, res) => {
       return failure(res, 404, 'Equipo no encontrado o no se realizaron cambios', { equipment: null })
     }
 
+    assertClientAccess(req.auth, equipment.client, 'Equipo no encontrado')
+
     const payload = buildEquipmentPayload(pickAllowedFields(req.body, EQUIPMENT_FIELDS))
     const current = equipment.toJSON()
     const nextPayload = {
@@ -128,6 +150,7 @@ const updateEquipment = async (req, res) => {
 
     assertEquipmentRequiredFields(nextPayload)
     validateEquipmentPayload(nextPayload)
+    assertClientAccess(req.auth, nextPayload.client)
     await assertEquipmentClientExists(Client, nextPayload.client)
     assertEquipmentUpdateAllowed({ equipment: current, payload, roleName: req.auth.roleName })
 
@@ -159,11 +182,17 @@ const destroyEquipment = async (req, res) => {
     if (!equipment) {
       return failure(res, 404, 'Equipo no encontrado', { equipment: null })
     }
+
+    assertClientAccess(req.auth, equipment.client, 'Equipo no encontrado')
     await equipment.destroy()
     return success(res, 200, 'Equipo eliminado con exito', {
       equipment: await enrichEquipment(equipment),
     })
   } catch (error) {
+    if (error instanceof DomainError) {
+      return buildDomainErrorResponse(res, error, 'equipment')
+    }
+
     return failure(res, 500, 'No fue posible eliminar el equipo', {
       equipment: null,
     })

@@ -1,5 +1,6 @@
 const User = require('../models/Users/User.model')
 const Role = require('../models/Roles/Role.model')
+const { loadUserAccessContext } = require('./scope')
 const { failure } = require('../utils/apiResponse')
 const { verifyAccessToken } = require('./jwt')
 const { buildRequestLogContext, logWarn } = require('../observability/logger')
@@ -28,7 +29,9 @@ const requireAuth = async (req, res, next) => {
     }
 
     const payload = verifyAccessToken(token)
-    const user = await User.findByPk(payload.sub)
+    const user = await User.findByPk(payload.sub, {
+      include: [{ model: Role, as: 'roleRecord', attributes: ['id', 'description'] }],
+    })
 
     if (!user) {
       logWarn('auth.user.missing', buildRequestLogContext(req))
@@ -43,7 +46,7 @@ const requireAuth = async (req, res, next) => {
       return failure(res, 401, 'Usuario inactivo', {})
     }
 
-    const role = await Role.findByPk(user.role)
+    const role = user.roleRecord
 
     if (!role) {
       logWarn('auth.role.invalid', {
@@ -53,11 +56,7 @@ const requireAuth = async (req, res, next) => {
       return failure(res, 403, 'Rol del usuario no valido', {})
     }
 
-    req.auth = {
-      userId: user.id,
-      roleId: role.id,
-      roleName: role.description,
-    }
+    req.auth = await loadUserAccessContext(user)
 
     return next()
   } catch (error) {

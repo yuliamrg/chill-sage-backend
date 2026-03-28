@@ -56,8 +56,8 @@ describe('orders integration', () => {
       .set('Authorization', ctx.extraTechToken)
       .send({})
 
-    expect(unassignedTechStartResponse.status).toBe(403)
-    expect(unassignedTechStartResponse.body.msg).toMatch(/no tienes permisos|tecnico asignado/i)
+    expect(unassignedTechStartResponse.status).toBe(404)
+    expect(unassignedTechStartResponse.body.msg).toMatch(/orden no encontrada|no tienes permisos|tecnico asignado/i)
 
     const assignedTechStartResponse = await request(app)
       .post(`/api/orders/${orderId}/start`)

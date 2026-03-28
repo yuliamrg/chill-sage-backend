@@ -2,6 +2,13 @@ const { Op } = require('sequelize')
 
 const { ROLE_IDS, ROLE_NAMES } = require('../../auth/roles')
 const {
+  assertAccessibleClientFilter,
+  assertClientAccess,
+  buildScopedClientWhere,
+  hasClientAccess,
+  listScopedClientIds,
+} = require('../../auth/scope')
+const {
   ACTIVE_ORDER_STATUSES,
   ORDER_ACTIONS,
   assertNoManualOrderCreateTransitionFields,
@@ -39,17 +46,7 @@ const parseDateRange = (value, fieldName) => {
   return parsed
 }
 
-const getUserScope = async (auth) => {
-  const user = await User.findByPk(auth.userId)
-
-  if (!user) {
-    throw new DomainError(401, 'Usuario autenticado no encontrado')
-  }
-
-  return user
-}
-
-const validateAssignedUser = async (assignedUserId) => {
+const validateAssignedUser = async (assignedUserId, clientId = null) => {
   if (!assignedUserId) {
     return null
   }
@@ -66,6 +63,14 @@ const validateAssignedUser = async (assignedUserId) => {
 
   if (assignedUser.role !== ROLE_IDS.TECNICO) {
     throw new DomainError(400, 'La orden solo puede asignarse a usuarios tecnicos')
+  }
+
+  if (clientId && !assignedUser.all_clients) {
+    const scopedClientIds = await listScopedClientIds(assignedUser.id)
+
+    if (!scopedClientIds.includes(clientId)) {
+      throw new DomainError(403, 'El tecnico asignado no tiene cobertura sobre ese cliente')
+    }
   }
 
   return assignedUser
@@ -96,7 +101,9 @@ const hydrateOrder = async (order) => {
 }
 
 const buildOrdersWhere = async (req) => {
-  const where = {}
+  const where = buildScopedClientWhere(req.auth, 'client_id')
+
+  assertAccessibleClientFilter(req.auth, req.query.client_id)
 
   if (req.query.client_id) {
     where.client_id = Number(req.query.client_id)
@@ -138,10 +145,10 @@ const buildOrdersWhere = async (req) => {
   }
 
   if (req.auth.roleName === ROLE_NAMES.SOLICITANTE) {
-    const authUser = await getUserScope(req.auth)
-    const requestsWhere = authUser.client
-      ? { [Op.or]: [{ requester_user_id: req.auth.userId }, { client_id: authUser.client }] }
-      : { requester_user_id: req.auth.userId }
+    const requestsWhere = {
+      requester_user_id: req.auth.userId,
+      ...buildScopedClientWhere(req.auth, 'client_id'),
+    }
     const requests = await Request.findAll({ where: requestsWhere, attributes: ['id'] })
     const requestIds = requests.map((request) => request.id)
 
@@ -158,20 +165,25 @@ const getOrderRecord = async (id, auth) => {
     throw new DomainError(404, 'Orden no encontrada')
   }
 
+  try {
+    assertClientAccess(auth, order.client_id, 'Orden no encontrada')
+  } catch (error) {
+    throw new DomainError(404, 'Orden no encontrada')
+  }
+
   if (auth.roleName === ROLE_NAMES.TECNICO && order.assigned_user_id !== auth.userId) {
-    throw new DomainError(403, 'No tienes permisos para consultar esta orden')
+    throw new DomainError(404, 'Orden no encontrada')
   }
 
   if (auth.roleName === ROLE_NAMES.SOLICITANTE) {
-    const authUser = await getUserScope(auth)
     const request = await Request.findByPk(order.request_id)
 
     if (!request) {
       throw new DomainError(404, 'La solicitud asociada no existe')
     }
 
-    if (request.requester_user_id !== auth.userId && (!authUser.client || request.client_id !== authUser.client)) {
-      throw new DomainError(403, 'No tienes permisos para consultar esta orden')
+    if (request.requester_user_id !== auth.userId || !hasClientAccess(auth, request.client_id)) {
+      throw new DomainError(404, 'Orden no encontrada')
     }
   }
 
@@ -232,6 +244,7 @@ const createOrder = async (req, res) => {
       request,
       activeOrderExists: false,
     })
+    assertClientAccess(req.auth, request.client_id, 'No tienes permisos para operar sobre ese cliente')
 
     const activeOrder = await Order.findOne({
       where: {
@@ -244,7 +257,7 @@ const createOrder = async (req, res) => {
 
     assertOrderCreateAllowed({ request, activeOrderExists: Boolean(activeOrder) })
 
-    await validateAssignedUser(payload.assigned_user_id)
+    await validateAssignedUser(payload.assigned_user_id, request.client_id)
 
     const orderCreate = await Order.create(
       withCreateAudit(buildCreateOrderPayload({ request, payload }), req.auth)
@@ -295,7 +308,7 @@ const updateOrder = async (req, res) => {
     const payload = pickAllowedFields(req.body, ORDER_UPDATE_FIELDS)
 
     if (Object.prototype.hasOwnProperty.call(payload, 'assigned_user_id')) {
-      await validateAssignedUser(payload.assigned_user_id)
+      await validateAssignedUser(payload.assigned_user_id, order.client_id)
     }
 
     await order.update(withUpdateAudit(payload, req.auth))
@@ -330,7 +343,7 @@ const assignOrder = async (req, res) => {
 
     const payload = pickAllowedFields(req.body, ORDER_ASSIGN_FIELDS)
 
-    await validateAssignedUser(payload.assigned_user_id)
+    await validateAssignedUser(payload.assigned_user_id, order.client_id)
 
     await order.update(
       withUpdateAudit(buildAssignOrderPayload({ payload, order }), req.auth)

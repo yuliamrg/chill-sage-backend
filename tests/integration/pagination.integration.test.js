@@ -1,8 +1,10 @@
+const { Op } = require('sequelize')
 const request = require('supertest')
 
 const { app } = require('../helpers/auth')
 const { buildOperationsContext, cleanupOperationsContext } = require('../helpers/operationsContext')
-const { createClientFixture, trackRequest } = require('../helpers/operations')
+const { createClientFixture, trackRequest, uniqueSuffix } = require('../helpers/operations')
+const Client = require('../../src/models/Clients/Client.model')
 
 describe('pagination integration', () => {
   let ctx
@@ -16,21 +18,34 @@ describe('pagination integration', () => {
   })
 
   test('clients list supports page, limit, sort and pagination metadata', async () => {
+    await Client.destroy({
+      where: {
+        [Op.or]: [
+          { name: { [Op.like]: '%Pagination Client%' } },
+          { email: { [Op.like]: 'pagination-%@example.com' } },
+        ],
+      },
+    })
+
+    const suffix = uniqueSuffix()
+    const lowName = `000 Pagination Client ${suffix}`
+    const highName = `999 Pagination Client ${suffix}`
+
     await createClientFixture({
       adminUserId: ctx.adminUser.id,
-      suffix: 'pagination-low',
+      suffix: `pagination-low-${suffix}`,
       overrides: {
-        name: '000 Pagination Client',
-        email: 'pagination-low@example.com',
+        name: lowName,
+        email: `pagination-low-${suffix}@example.com`,
       },
     })
 
     await createClientFixture({
       adminUserId: ctx.adminUser.id,
-      suffix: 'pagination-high',
+      suffix: `pagination-high-${suffix}`,
       overrides: {
-        name: '999 Pagination Client',
-        email: 'pagination-high@example.com',
+        name: highName,
+        email: `pagination-high-${suffix}@example.com`,
       },
     })
 
@@ -40,7 +55,7 @@ describe('pagination integration', () => {
 
     expect(response.status).toBe(200)
     expect(response.body.clients).toHaveLength(1)
-    expect(response.body.clients[0].name).toBe('000 Pagination Client')
+    expect(response.body.clients[0].name).toBe(lowName)
     expect(response.body.meta).toEqual({
       pagination: expect.objectContaining({
         page: 1,

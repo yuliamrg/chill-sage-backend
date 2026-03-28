@@ -92,7 +92,7 @@ const assertRequestUpdateAllowed = ({ request, payload, roleName }) => {
     throw new DomainError(409, 'Las solicitudes aprobadas o anuladas no se pueden editar')
   }
 
-  if (roleName === ROLE_NAMES.ADMIN) {
+  if (roleName === ROLE_NAMES.ADMIN_PLATAFORMA || roleName === ROLE_NAMES.ADMIN_CLIENTE) {
     return
   }
 

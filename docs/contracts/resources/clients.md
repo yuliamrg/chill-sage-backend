@@ -2,7 +2,7 @@
 
 Fecha de referencia: `2026-03-28`
 
-`clients` sigue siendo un recurso maestro, pero ya no debe tratarse como CRUD totalmente libre para `planeador`.
+`clients` es un recurso maestro con lectura y actualizacion acotadas por cobertura de cliente.
 
 ## Endpoints
 
@@ -63,9 +63,10 @@ Campos permitidos:
 
 Restriccion por rol:
 
-- `admin` puede editar todos los campos permitidos
+- `admin_plataforma` puede editar todos los campos permitidos
+- `admin_cliente` y `planeador` solo pueden editar clientes dentro de su cobertura
 - `planeador` solo puede editar campos operativos: `address`, `phone`, `description`, `status`
-- `planeador` no puede cambiar datos maestros base: `name`, `email`
+- `planeador` no puede cambiar `name` ni `email`
 - `user_updated_id` enviado por frontend se ignora; auditoria la define el backend
 
 ## Estados
@@ -75,13 +76,14 @@ Restriccion por rol:
 
 ## Reglas De Acceso
 
-- `GET`: `admin`, `planeador`, `tecnico`
-- `POST`: `admin`, `planeador`
-- `PUT`: `admin`, `planeador`
-- `DELETE`: solo `admin`
+- `GET`: `admin_plataforma`, `admin_cliente`, `planeador`, `tecnico`
+- `POST`: solo `admin_plataforma`
+- `PUT`: `admin_plataforma`, `admin_cliente`, `planeador`
+- `DELETE`: solo `admin_plataforma`
 
 ## Reglas De Negocio
 
+- `GET /clients` devuelve solo clientes dentro de cobertura del actor, salvo `admin_plataforma`
+- `GET /clients/:id` fuera de cobertura responde `404`
 - frontend no debe asumir que `DELETE` siempre depende solo del rol
 - un cliente con `users`, `equipments`, `requests`, `orders` o `schedules` asociados responde `409`
-- si frontend ofrece accion de eliminacion, debe reservarla para clientes huerfanos o manejar el `409` con mensaje claro

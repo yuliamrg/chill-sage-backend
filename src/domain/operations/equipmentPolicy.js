@@ -95,7 +95,7 @@ const assertEquipmentClientExists = async (Client, clientId) => {
 }
 
 const assertEquipmentUpdateAllowed = ({ equipment, payload, roleName }) => {
-  if (roleName === ROLE_NAMES.ADMIN) {
+  if (roleName === ROLE_NAMES.ADMIN_PLATAFORMA || roleName === ROLE_NAMES.ADMIN_CLIENTE) {
     return
   }
 

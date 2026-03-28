@@ -2,6 +2,12 @@ const { Op } = require('sequelize')
 
 const { ROLE_NAMES } = require('../../auth/roles')
 const {
+  assertAccessibleClientFilter,
+  assertClientAccess,
+  buildScopedClientWhere,
+  resolvePrimaryClientIdForAction,
+} = require('../../auth/scope')
+const {
   REQUEST_ACTIONS,
   assertNoManualRequestStateFields,
   assertRequestActionAllowed,
@@ -33,16 +39,6 @@ const parseDateRange = (value, fieldName) => {
   }
 
   return parsed
-}
-
-const getUserScope = async (auth) => {
-  const user = await User.findByPk(auth.userId)
-
-  if (!user) {
-    throw new DomainError(401, 'Usuario autenticado no encontrado')
-  }
-
-  return user
 }
 
 const getEquipmentForClient = async (equipmentId, clientId) => {
@@ -79,7 +75,6 @@ const validateRequester = async (requesterUserId) => {
 
 const resolveCreatePayload = async (req) => {
   const payload = pickAllowedFields(req.body, REQUEST_CREATE_FIELDS)
-  const authUser = await getUserScope(req.auth)
 
   assertNoManualRequestStateFields(req.body, 'POST')
 
@@ -93,19 +88,14 @@ const resolveCreatePayload = async (req) => {
 
   await validateRequester(payload.requester_user_id)
 
-  if (!payload.client_id) {
-    payload.client_id = authUser.client || null
-  }
-
-  if (!payload.client_id) {
-    throw new DomainError(400, 'La solicitud requiere client_id')
-  }
+  payload.client_id = resolvePrimaryClientIdForAction(req.auth, payload.client_id)
 
   const nextPayload = buildCreateRequestPayload(payload)
 
   assertRequestRequiredFields(nextPayload)
   validateRequestTypeAndPriority(nextPayload)
 
+  assertClientAccess(req.auth, nextPayload.client_id)
   const client = await Client.findByPk(nextPayload.client_id)
 
   if (!client) {
@@ -130,6 +120,10 @@ const resolveUpdatePayload = async (req, existingRequest) => {
     ...payload,
   }
 
+  if (Object.prototype.hasOwnProperty.call(payload, 'client_id')) {
+    assertClientAccess(req.auth, nextPayload.client_id)
+  }
+
   assertRequestRequiredFields(nextPayload)
   validateRequestTypeAndPriority(nextPayload)
   await validateRequester(nextPayload.requester_user_id)
@@ -146,8 +140,9 @@ const resolveUpdatePayload = async (req, existingRequest) => {
 }
 
 const buildRequestWhere = async (req) => {
-  const where = {}
-  const authUser = await getUserScope(req.auth)
+  const where = buildScopedClientWhere(req.auth, 'client_id')
+
+  assertAccessibleClientFilter(req.auth, req.query.client_id)
 
   if (req.query.client_id) {
     where.client_id = Number(req.query.client_id)
@@ -185,13 +180,7 @@ const buildRequestWhere = async (req) => {
   }
 
   if (req.auth.roleName === ROLE_NAMES.SOLICITANTE) {
-    const scope = [{ requester_user_id: req.auth.userId }]
-
-    if (authUser.client) {
-      scope.push({ client_id: authUser.client })
-    }
-
-    where[Op.and] = [...(where[Op.and] || []), { [Op.or]: scope }]
+    where.requester_user_id = req.auth.userId
   }
 
   return where
@@ -228,12 +217,14 @@ const getRequestRecord = async (id, auth) => {
     throw new DomainError(404, 'Solicitud no encontrada')
   }
 
-  if (auth.roleName === ROLE_NAMES.SOLICITANTE) {
-    const authUser = await getUserScope(auth)
+  try {
+    assertClientAccess(auth, request.client_id, 'Solicitud no encontrada')
+  } catch (error) {
+    throw new DomainError(404, 'Solicitud no encontrada')
+  }
 
-    if (request.requester_user_id !== auth.userId && (!authUser.client || request.client_id !== authUser.client)) {
-      throw new DomainError(403, 'No tienes permisos para consultar esta solicitud')
-    }
+  if (auth.roleName === ROLE_NAMES.SOLICITANTE && request.requester_user_id !== auth.userId) {
+    throw new DomainError(404, 'Solicitud no encontrada')
   }
 
   return request

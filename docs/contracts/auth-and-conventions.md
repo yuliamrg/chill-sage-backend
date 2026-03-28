@@ -19,13 +19,15 @@ Comportamiento real:
 - todo el resto de rutas bajo `/api` requiere token Bearer
 - sin token valido el backend responde `401`
 - con token valido pero sin permiso suficiente responde `403`
+- con token valido pero intentando leer un recurso fuera de cobertura el backend suele responder `404`
 
 Roles base actuales:
 
-- `1`: `admin`
+- `1`: `admin_plataforma`
 - `2`: `solicitante`
 - `3`: `planeador`
 - `4`: `tecnico`
+- `5`: `admin_cliente`
 
 ## Login
 
@@ -63,9 +65,30 @@ Respuesta actual:
   "access_token": "<jwt>",
   "token_type": "Bearer",
   "expires_in": "8h",
-  "user": {}
+  "user": {
+    "id": 3,
+    "username": "planner.norte",
+    "email": "planner.norte@example.com",
+    "role": 3,
+    "role_name": "planeador",
+    "primary_client_id": 1,
+    "primary_client_name": "Cliente Norte",
+    "client_ids": [1, 2],
+    "all_clients": false,
+    "clients": []
+  }
 }
 ```
+
+## Cobertura Por Cliente
+
+- `admin_plataforma` tiene acceso global
+- `admin_cliente`, `planeador`, `tecnico` y `solicitante` operan con `primary_client_id`, `client_ids` y `all_clients`
+- `all_clients=true` habilita acceso total a clientes
+- si `all_clients=false`, la cobertura efectiva son los `client_ids`
+- cualquier usuario no plataforma requiere `primary_client_id`
+- cuando una accion operativa no envia `client_id`, el backend intenta usar `primary_client_id`
+- si el usuario no tiene cliente primario valido, la accion responde `400`
 
 ## Compatibilidad Operativa Para Frontend Web
 
@@ -81,9 +104,10 @@ Checklist minima para frontend:
 
 - configurar `VITE_API_URL` o equivalente contra el backend correcto
 - alinear el origin del frontend con `CORS_ORIGINS`
-- manejar `401`, `403`, `409`, `429` y `500` como estados esperados del contrato
+- manejar `401`, `403`, `404`, `409`, `429` y `500` como estados esperados del contrato
 - no depender de mensajes de error internos ni de stacks
 - conservar `X-Request-Id` en logs del frontend o reportes de error si existe
+- persistir `role_name`, `primary_client_id`, `client_ids` y `all_clients` del usuario autenticado
 
 ## Estructura Base De Respuesta
 
@@ -161,6 +185,7 @@ X-Request-Id: <uuid-o-id-propagado>
 - conflictos de dominio usan `409`
 - falta de autenticacion usa `401`
 - falta de permiso usa `403`
+- intento de detalle fuera de cobertura puede responder `404`
 - rate limit de login usa `429`
 - en `requests`, `orders` y `schedules` el frontend no debe intentar cambiar `status` por `PUT`
 - las transiciones de negocio viven en endpoints de accion dedicados

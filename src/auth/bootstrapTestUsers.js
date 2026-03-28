@@ -6,7 +6,7 @@ const { ROLE_IDS } = require('./roles')
 
 const TEST_USERS = [
   {
-    roleId: ROLE_IDS.ADMIN,
+    roleId: ROLE_IDS.ADMIN_PLATAFORMA,
     usernameEnv: 'TEST_ADMIN_USERNAME',
     emailEnv: 'TEST_ADMIN_EMAIL',
     passwordEnv: 'TEST_ADMIN_PASSWORD',

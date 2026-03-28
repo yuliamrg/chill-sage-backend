@@ -3,10 +3,10 @@ const { createEquipment, getEquipments, getEquipmentById, updateEquipment, destr
 const { requireRole } = require('../../auth/middleware')
 const { ROLE_NAMES } = require('../../auth/roles')
 
-router.get('/', requireRole(ROLE_NAMES.ADMIN, ROLE_NAMES.PLANEADOR, ROLE_NAMES.TECNICO), getEquipments)
-router.get('/:id', requireRole(ROLE_NAMES.ADMIN, ROLE_NAMES.PLANEADOR, ROLE_NAMES.TECNICO), getEquipmentById)
-router.post('/', requireRole(ROLE_NAMES.ADMIN, ROLE_NAMES.PLANEADOR), createEquipment)
-router.put('/:id', requireRole(ROLE_NAMES.ADMIN, ROLE_NAMES.PLANEADOR), updateEquipment)
-router.delete('/:id', requireRole(ROLE_NAMES.ADMIN), destroyEquipment)
+router.get('/', requireRole(ROLE_NAMES.ADMIN_PLATAFORMA, ROLE_NAMES.ADMIN_CLIENTE, ROLE_NAMES.PLANEADOR, ROLE_NAMES.TECNICO), getEquipments)
+router.get('/:id', requireRole(ROLE_NAMES.ADMIN_PLATAFORMA, ROLE_NAMES.ADMIN_CLIENTE, ROLE_NAMES.PLANEADOR, ROLE_NAMES.TECNICO), getEquipmentById)
+router.post('/', requireRole(ROLE_NAMES.ADMIN_PLATAFORMA, ROLE_NAMES.ADMIN_CLIENTE, ROLE_NAMES.PLANEADOR), createEquipment)
+router.put('/:id', requireRole(ROLE_NAMES.ADMIN_PLATAFORMA, ROLE_NAMES.ADMIN_CLIENTE, ROLE_NAMES.PLANEADOR), updateEquipment)
+router.delete('/:id', requireRole(ROLE_NAMES.ADMIN_PLATAFORMA, ROLE_NAMES.ADMIN_CLIENTE), destroyEquipment)
 
 module.exports = router

@@ -3,10 +3,10 @@ const { createProfile, getProfiles, getProfileById, updateProfile, destroyProfil
 const { requireRole } = require('../../auth/middleware')
 const { ROLE_NAMES } = require('../../auth/roles')
 
-router.get('/', requireRole(ROLE_NAMES.ADMIN, ROLE_NAMES.PLANEADOR), getProfiles)
-router.get('/:id', requireRole(ROLE_NAMES.ADMIN, ROLE_NAMES.PLANEADOR), getProfileById)
-router.post('/', requireRole(ROLE_NAMES.ADMIN), createProfile)
-router.put('/:id', requireRole(ROLE_NAMES.ADMIN), updateProfile)
-router.delete('/:id', requireRole(ROLE_NAMES.ADMIN), destroyProfile)
+router.get('/', requireRole(ROLE_NAMES.ADMIN_PLATAFORMA, ROLE_NAMES.ADMIN_CLIENTE), getProfiles)
+router.get('/:id', requireRole(ROLE_NAMES.ADMIN_PLATAFORMA, ROLE_NAMES.ADMIN_CLIENTE), getProfileById)
+router.post('/', requireRole(ROLE_NAMES.ADMIN_PLATAFORMA), createProfile)
+router.put('/:id', requireRole(ROLE_NAMES.ADMIN_PLATAFORMA), updateProfile)
+router.delete('/:id', requireRole(ROLE_NAMES.ADMIN_PLATAFORMA), destroyProfile)
 
 module.exports = router

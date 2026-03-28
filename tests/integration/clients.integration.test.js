@@ -2,7 +2,7 @@ const request = require('supertest')
 
 const { app } = require('../helpers/auth')
 const { buildOperationsContext, cleanupOperationsContext } = require('../helpers/operationsContext')
-const { createClientFixture, trackClient, untrack } = require('../helpers/operations')
+const { createClientFixture, uniqueSuffix, untrack } = require('../helpers/operations')
 
 describe('clients integration', () => {
   let ctx
@@ -15,7 +15,7 @@ describe('clients integration', () => {
     await cleanupOperationsContext()
   })
 
-  test('planeador can create client but audit fields come from auth context', async () => {
+  test('planeador cannot create client records', async () => {
     const response = await request(app)
       .post('/api/clients')
       .set('Authorization', ctx.planeadorToken)
@@ -29,13 +29,7 @@ describe('clients integration', () => {
         user_created_id: ctx.adminUser.id,
       })
 
-    expect(response.status).toBe(201)
-    expect(response.body.client.name).toBe('Client Strict Create')
-    expect(response.body.client.email).toBe('client.strict@example.com')
-    expect(response.body.client.address).toBe('Main office')
-    expect(response.body.client.phone).toBe('+57 300 123 4567')
-    expect(response.body.client.user_created_id).not.toBe(ctx.adminUser.id)
-    trackClient(response.body.client.id)
+    expect(response.status).toBe(403)
   })
 
   test('create rejects blank required fields', async () => {
@@ -128,17 +122,18 @@ describe('clients integration', () => {
   })
 
   test('admin can update client master identity fields', async () => {
+    const suffix = uniqueSuffix()
     const response = await request(app)
       .put(`/api/clients/${ctx.clientB.id}`)
       .set('Authorization', ctx.adminToken)
       .send({
-        name: 'Admin Updated Client',
-        email: 'admin.updated.client@example.com',
+        name: `Admin Updated Client ${suffix}`,
+        email: `admin.updated.client.${suffix}@example.com`,
       })
 
     expect(response.status).toBe(200)
-    expect(response.body.client.name).toBe('Admin Updated Client')
-    expect(response.body.client.email).toBe('admin.updated.client@example.com')
+    expect(response.body.client.name).toBe(`Admin Updated Client ${suffix}`)
+    expect(response.body.client.email).toBe(`admin.updated.client.${suffix}@example.com`)
   })
 
   test('delete rejects clients with related operational records', async () => {
