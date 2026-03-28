@@ -2,7 +2,7 @@
 
 Backend REST en `Express` + `Sequelize` para ChillSage.
 
-El estado real del repo ya no es solo CRUD: hoy hay flujo operativo implementado para `requests`, `orders` y `schedules`, además de autenticación JWT, autorización por rol, paginación, observabilidad básica y migraciones versionadas.
+El estado real del repo ya no es solo CRUD: hoy hay flujo operativo implementado para `requests`, `orders` y `schedules`, además de autenticación JWT, autorización por rol, cobertura multi-cliente, paginación, observabilidad básica y migraciones versionadas.
 
 ## Qué Existe Hoy
 
@@ -10,6 +10,7 @@ El estado real del repo ya no es solo CRUD: hoy hay flujo operativo implementado
 - login en `POST /api/users/login`
 - `GET /api/health` público
 - JWT Bearer y autorización por rol
+- aislamiento por cliente con `primary_client_id`, `client_ids` y `all_clients`
 - recursos base: `users`, `clients`, `roles`, `profiles`, `equipments`
 - flujo operativo: `requests`, `orders`, `schedules`
 - pruebas de integración con `jest` y `supertest`
@@ -91,3 +92,4 @@ Fuentes canónicas:
 
 - `pnpm start` no modifica esquema ni crea datos base.
 - Si hay conflicto entre documentación de producto y backend implementado, manda el contrato real en [docs/contracts/FRONTEND_API_SERVICES.md](./docs/contracts/FRONTEND_API_SERVICES.md).
+- Si hay conflicto entre backlog o revisiones históricas y el código actual, manda `docs/contracts/` para contrato HTTP y `docs/engineering/CANONICAL_SCHEMA.md` para persistencia.

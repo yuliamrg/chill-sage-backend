@@ -1,90 +1,51 @@
 # Revision Tecnica
 
-Revision estatica actualizada sobre el estado documental y funcional del proyecto en `2026-03-28`.
+Revision estatica actualizada sobre el estado real del backend en `2026-03-28`.
 
 ## Resumen Ejecutivo
 
-El backend ya no debe considerarse una base CRUD plana. La brecha principal de dominio se redujo en `requests`, `orders` y `schedules`, que hoy implementan flujo operativo, estados, permisos por rol y validaciones de negocio relevantes.
+El backend ya no debe describirse como base CRUD simple. Hoy existe:
 
-La brecha que sigue abierta se concentra en:
+- flujo operativo implementado para `requests`, `orders` y `schedules`
+- autenticacion JWT Bearer y autorizacion por rol
+- aislamiento multi-cliente con `primary_client_id`, `client_ids` y `all_clients`
+- administracion separada entre `admin_plataforma` y `admin_cliente`
+- paginacion uniforme, migraciones versionadas y observabilidad minima util
 
-- historial tecnico
-- calificacion del servicio
-- permisos mas finos fuera del nucleo operativo
+La documentacion de `docs/context/` sigue siendo objetivo de producto, no estado implementado.
 
-## Lo Mejor Resuelto Hoy
+## Estado Real Del Backend
 
-- arranque controlado del servidor y validacion de conexion a MySQL
-- autenticacion JWT Bearer
-- autorizacion por rol en rutas
-- listas blancas de campos y proteccion de auditoria
-- contrato operativo real para `requests`, `orders` y `schedules`
-- filtros por query en modulos operativos
-- restricciones de ownership relevantes para `solicitante` y `tecnico`
-- pruebas de integracion para login, autorizacion y flujo operativo
-- CORS restringido por entorno
-- rate limiting en login
-- saneamiento base de respuestas `500`
-- observabilidad minima con `X-Request-Id`, `GET /api/health` y logs JSON
-- migraciones versionadas con tabla `schema_migrations` y runner dedicado
-- paginacion uniforme en listados con `page`, `limit`, `sort` y `meta`
+### Resuelto
 
-## Estado Del Dominio
+- `POST /api/users/login` y `GET /api/health` publicos; el resto de `/api` requiere Bearer token
+- roles base: `admin_plataforma`, `admin_cliente`, `planeador`, `tecnico`, `solicitante`
+- cobertura por cliente aplicada en `users`, `clients`, `equipments`, `requests`, `orders` y `schedules`
+- `404` para detalle fuera de cobertura y `403` para filtros explicitos fuera de alcance en recursos operativos
+- flujo de negocio con endpoints de accion dedicados en `requests`, `orders` y `schedules`
+- validaciones de dominio y consistencia de cliente en recursos operativos
+- CORS por `CORS_ORIGINS`, rate limiting en login y respuestas `500` endurecidas
+- `X-Request-Id`, logs JSON basicos y `schema_migrations`
+- suite de integracion sobre auth, autorizacion, paginacion, hardening, migraciones y recursos principales
 
-### Ya implementado
+### Lo Que No Debe Inferirse
 
-- `requests` con estados `pending`, `approved`, `cancelled`
-- `orders` con estados `assigned`, `in_progress`, `completed`, `cancelled`
-- `schedules` con estados `unassigned`, `open`, `closed`
-- transiciones de negocio:
-  - aprobar y anular solicitud
-  - asignar, iniciar, completar y cancelar orden
-  - abrir y cerrar cronograma
-- validacion de relaciones:
-  - solicitud ligada a cliente y equipo coherentes
-  - orden creada solo desde solicitud aprobada
-  - una orden activa por solicitud
-  - cronograma con equipos del mismo cliente
+- `docs/context/` no implica que existan ya `historial tecnico` o `calificacion del servicio`
+- el backend no expone refresh token ni autenticacion por cookies
+- `requests`, `orders` y `schedules` no deben tratarse como CRUD libre aunque tengan rutas base
 
-### Aun pendiente
+## Brechas Vigentes
 
-- historial tecnico consolidado por equipo
-- calificaciones como modulo y contrato propio
-- politicas mas finas de acceso por cliente en recursos maestros
-- reemplazar borrado fisico por estrategia mas segura si el dominio lo exige
+Las brechas tecnicas que siguen siendo razonables hoy ya viven en `docs/engineering/HARDENING_PLAN.md`. Este documento no debe duplicar backlog de endurecimiento ni roadmap funcional.
 
-## Seguridad Y Acceso
+En terminos practicos, lo pendiente con impacto real es:
 
-Resuelto hoy:
+- decidir politica de secretos si el repo se va a compartir fuera del equipo
+- rechazar campos desconocidos en payloads en lugar de filtrarlos en silencio
+- ampliar pruebas negativas utiles y automatizar `pnpm test` en CI
 
-- login publico en `POST /api/users/login`
-- autenticacion obligatoria para el resto de `/api`
-- `401` y `403` diferenciados
-- `DELETE` restringido a `admin` en `requests`, `orders` y `schedules`
+## Regla De Uso
 
-Pendiente:
-
-- refresh token
-- criterios totalmente uniformes de errores entre todos los controladores
-
-## Operacion Y Calidad
-
-Resuelto hoy:
-
-- suite con `jest` y `supertest`
-- cobertura de login y autorizacion
-- cobertura de integracion separada por recurso para `requests`, `orders` y `schedules`
-
-Pendiente:
-
-- ampliar cobertura a clientes, equipos y usuarios
-- agregar escenarios de regresion sobre errores de validacion y ownership
-- pipeline automatizado de CI si se busca mayor confiabilidad
-
-## Recomendacion De Trabajo
-
-Orden sugerido desde el estado actual:
-
-1. implementar `historial tecnico`
-2. implementar `calificacion del servicio`
-3. extender cobertura automatizada a modulos no operativos
+- usa `docs/contracts/` como contrato HTTP vigente
+- usa `docs/engineering/CANONICAL_SCHEMA.md` como fuente de verdad de persistencia
+- usa `docs/context/` solo como objetivo de producto o backlog funcional

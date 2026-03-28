@@ -46,17 +46,7 @@ Hace falta:
 
 No hace falta ampliar este punto dentro del repo hasta que exista una accion operativa concreta.
 
-### 2. Aislamiento y autorizacion fuera del nucleo operativo
-
-Estado: `pendiente de decision`
-
-Hoy `users`, `clients` y `equipments` ya tienen permisos por rol, pero no existe una politica general de aislamiento por cliente para todos los recursos maestros.
-
-Esto solo debe implementarse si el producto necesita tenancy mas estricto entre clientes o visibilidad limitada para tecnicos y solicitantes fuera del flujo operativo actual.
-
-Si ese requisito no existe, no conviene inflar el backend con mas capas de alcance.
-
-### 3. Rechazo explicito de campos desconocidos
+### 2. Rechazo explicito de campos desconocidos
 
 Estado: `recomendado`
 
@@ -70,7 +60,7 @@ Esto si aporta valor real porque:
 
 Prioridad sugerida: media.
 
-### 4. Cobertura negativa y automatizacion minima
+### 3. Cobertura negativa y automatizacion minima
 
 Estado: `recomendado`
 
@@ -91,7 +81,6 @@ Si se quiere seguir endureciendo sin meter trabajo de poco retorno, el orden raz
 2. agregar rechazo explicito de campos desconocidos
 3. ampliar pruebas negativas clave
 4. montar CI basica con `pnpm test`
-5. decidir solo despues si hace falta aislamiento adicional por cliente en recursos maestros
 
 ## Regla De Mantenimiento
 
