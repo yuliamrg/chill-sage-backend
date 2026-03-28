@@ -1,6 +1,6 @@
 # Revision Tecnica
 
-Revision estatica actualizada sobre el estado documental y funcional del proyecto en `2026-03-22`.
+Revision estatica actualizada sobre el estado documental y funcional del proyecto en `2026-03-28`.
 
 ## Resumen Ejecutivo
 
@@ -11,7 +11,7 @@ La brecha que sigue abierta se concentra en:
 - historial tecnico
 - calificacion del servicio
 - paginacion y versionado de esquema
-- endurecimiento adicional de seguridad y errores
+- observabilidad minima
 - permisos mas finos fuera del nucleo operativo
 
 ## Lo Mejor Resuelto Hoy
@@ -24,6 +24,9 @@ La brecha que sigue abierta se concentra en:
 - filtros por query en modulos operativos
 - restricciones de ownership relevantes para `solicitante` y `tecnico`
 - pruebas de integracion para login, autorizacion y flujo operativo
+- CORS restringido por entorno
+- rate limiting en login
+- saneamiento base de respuestas `500`
 
 ## Estado Del Dominio
 
@@ -61,9 +64,8 @@ Resuelto hoy:
 Pendiente:
 
 - refresh token
-- rate limiting en login
-- CORS restringido por entorno
-- endurecimiento adicional del manejo de errores
+- observabilidad minima
+- criterios totalmente uniformes de errores entre todos los controladores
 
 ## Operacion Y Calidad
 
@@ -86,6 +88,6 @@ Orden sugerido desde el estado actual:
 1. implementar `historial tecnico`
 2. implementar `calificacion del servicio`
 3. formalizar migraciones versionadas
-4. endurecer errores, CORS y rate limiting
+4. agregar observabilidad minima
 5. agregar paginacion y metadatos de listado
 6. extender cobertura automatizada a modulos no operativos

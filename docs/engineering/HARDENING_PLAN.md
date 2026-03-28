@@ -60,13 +60,14 @@ Checklist:
 - [x] `.env.example` disponible como referencia
 - [ ] credenciales rotadas si hubo exposicion previa
 - [ ] historial saneado si el repositorio va a circular fuera del equipo actual
-- [ ] configuracion segura por entorno documentada
+- [x] configuracion segura por entorno documentada
 
 Evidencia actual:
 
 - `.env` existe localmente y no esta versionado
 - `.env.example` esta versionado
 - `.gitignore` incluye `.env`
+- `README.md`, `docs/README.md` y `docs/contracts/FRONTEND_API_SERVICES.md` documentan `CORS_ORIGINS`, rate limit de login y expectativas de integracion de frontend
 
 Brecha actual:
 

@@ -2,7 +2,7 @@
 
 Documento de referencia del backend segun el codigo actual del repositorio.
 
-Fecha de referencia: `2026-03-24`
+Fecha de referencia: `2026-03-28`
 
 ## Alcance
 
@@ -36,6 +36,22 @@ Ruta publica adicional:
 Todos los demas endpoints requieren:
 
 - header `Authorization: Bearer <access_token>`
+
+## Compatibilidad Operativa Para Frontend Web
+
+El hardening reciente agrega estas condiciones de integracion:
+
+- el frontend debe consumir la API desde un origin incluido en `CORS_ORIGINS`
+- `POST /users/login` puede responder `429` por rate limiting
+- las respuestas `500` ya no deben asumirse con detalle tecnico interno
+- la autenticacion sigue siendo solo por token Bearer en header; no hay cookies ni refresh token
+
+Checklist minima para frontend:
+
+- configurar `VITE_API_URL` o equivalente contra el backend correcto
+- alinear el origin del frontend con `CORS_ORIGINS` del backend
+- manejar `401`, `403`, `409`, `429` y `500` como estados esperados del contrato
+- no depender de mensajes de error internos ni de stacks
 
 ## Estructura Base De Respuesta
 
@@ -79,6 +95,25 @@ La API responde con esta forma:
 }
 ```
 
+### Error de rate limiting en login
+
+```json
+{
+  "status": false,
+  "msg": "Demasiados intentos de inicio de sesion. Intenta nuevamente mas tarde",
+  "user": null
+}
+```
+
+### Error `500` endurecido
+
+```json
+{
+  "status": false,
+  "msg": "Unexpected server error"
+}
+```
+
 ## Convenciones
 
 - los listados devuelven una llave plural
@@ -88,6 +123,7 @@ La API responde con esta forma:
 - conflictos de dominio usan `409`
 - falta de autenticacion usa `401`
 - falta de permiso usa `403`
+- rate limit de login usa `429`
 - en `requests`, `orders` y `schedules` el frontend no debe intentar cambiar `status` por `PUT`
 - las transiciones de negocio viven en endpoints de accion dedicados
 
@@ -115,6 +151,7 @@ Notas reales:
 - `username` debe tratarse como compatibilidad legacy del backend, no como contrato vigente para frontend
 - responde `400` si falta `password` o faltan `email` y `username`
 - responde `401` si el usuario no existe, esta inactivo o la contrasena no coincide
+- responde `429` si excede el limite configurado de intentos fallidos
 - el campo `password` nunca se devuelve
 
 Respuesta actual:
@@ -712,10 +749,20 @@ Cuando cambie el contrato del backend, revisa como minimo:
 Puntos concretos a alinear en frontend con el hardening actual:
 
 - usar `email` como identificador de login
+- asegurarse de que el dominio o puerto del frontend este incluido en `CORS_ORIGINS`
+- manejar `429` en login con UI de espera o mensaje de reintento
+- no depender de `error.message`, stacks o detalles internos en respuestas `500`
+- seguir enviando `Authorization: Bearer <token>` en todas las rutas privadas
 - quitar selects o inputs libres de `status` en `requests`, `orders` y `schedules`
 - modelar acciones de negocio como llamados dedicados a `approve`, `cancel`, `assign`, `start`, `complete`, `open` y `close`
 - deshabilitar botones de accion cuando el estado actual no permita la transicion para evitar `409`
 - tratar `approved`, `completed`, `cancelled` y `closed` como estados de solo lectura en sus formularios de edicion
+
+Cambios que el frontend no necesita hacer:
+
+- no necesita migrar a cookies o sesion server-side
+- no necesita usar `username` para login; `email` sigue siendo el contrato preferido
+- no necesita cambiar payloads de `requests`, `orders` o `schedules` por el hardening reciente
 
 ## Protocolo De Cambio
 

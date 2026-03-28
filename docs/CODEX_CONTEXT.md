@@ -55,19 +55,21 @@ Patron dominante actual:
 
 ## Arranque Real
 
-`npm run start` hoy hace solo lo necesario para servir la API:
+`pnpm start` hoy hace solo lo necesario para servir la API:
 
 - autentica conexion a MySQL
 - inicializa asociaciones Sequelize
 - valida configuracion JWT
+- aplica CORS restringido por `CORS_ORIGINS`
+- aplica rate limiting a `POST /api/users/login`
 - levanta Express
 
 No ejecuta bootstrap de esquema, roles ni usuarios de prueba.
 
 Cuando eso se requiere, el repo expone scripts manuales:
 
-- `npm run db:ensure-schema`
-- `npm run db:bootstrap-auth`
+- `pnpm run db:ensure-schema`
+- `pnpm run db:bootstrap-auth`
 
 ## Restricciones Reales Del Codigo
 
@@ -113,6 +115,11 @@ Si el cambio toca contrato o comportamiento de negocio:
 2. no asumas que el documento de producto ya esta implementado
 3. actualiza [contracts/FRONTEND_API_SERVICES.md](./contracts/FRONTEND_API_SERVICES.md) en el mismo cambio
 4. si hay cambio rompiente, refleja el impacto esperado en frontend
+
+Si el cambio toca seguridad u operacion:
+
+1. actualiza tambien [engineering/HARDENING_PLAN.md](./engineering/HARDENING_PLAN.md)
+2. documenta si frontend debe ajustar `Origin`, manejo de `429` o tratamiento de errores `500`
 
 ## Meta Practica
 

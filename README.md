@@ -16,6 +16,9 @@ Lo que existe hoy:
 - contrato operativo real para `requests`, `orders` y `schedules`
 - filtros por query en modulos operativos
 - pruebas de integracion con `jest` y `supertest`
+- CORS restringido por entorno para clientes web
+- rate limiting en `POST /api/users/login`
+- respuestas `500` saneadas para no exponer detalles internos
 
 Lo que aun no existe o sigue incompleto:
 
@@ -102,16 +105,16 @@ Arquitectura actual:
 
 Punto de entrada:
 
-- [docs/README.md](/C:/Users/yulia/Documents/projects/chillsage/chillsage-backend/docs/README.md)
+- [docs/README.md](./docs/README.md)
 
 Orden recomendado:
 
-1. [docs/CODEX_CONTEXT.md](/C:/Users/yulia/Documents/projects/chillsage/chillsage-backend/docs/CODEX_CONTEXT.md)
-2. [docs/contracts/FRONTEND_API_SERVICES.md](/C:/Users/yulia/Documents/projects/chillsage/chillsage-backend/docs/contracts/FRONTEND_API_SERVICES.md)
-3. [docs/engineering/CANONICAL_SCHEMA.md](/C:/Users/yulia/Documents/projects/chillsage/chillsage-backend/docs/engineering/CANONICAL_SCHEMA.md)
-4. [docs/context/CONTEXTO_PRODUCTO_CHILLSAGE.md](/C:/Users/yulia/Documents/projects/chillsage/chillsage-backend/docs/context/CONTEXTO_PRODUCTO_CHILLSAGE.md)
-5. [docs/context/ESPECIFICACION_FUNCIONAL_MODULOS_CHILLSAGE.md](/C:/Users/yulia/Documents/projects/chillsage/chillsage-backend/docs/context/ESPECIFICACION_FUNCIONAL_MODULOS_CHILLSAGE.md)
-6. [docs/engineering/REVIEW.md](/C:/Users/yulia/Documents/projects/chillsage/chillsage-backend/docs/engineering/REVIEW.md)
+1. [docs/CODEX_CONTEXT.md](./docs/CODEX_CONTEXT.md)
+2. [docs/contracts/FRONTEND_API_SERVICES.md](./docs/contracts/FRONTEND_API_SERVICES.md)
+3. [docs/engineering/CANONICAL_SCHEMA.md](./docs/engineering/CANONICAL_SCHEMA.md)
+4. [docs/context/CONTEXTO_PRODUCTO_CHILLSAGE.md](./docs/context/CONTEXTO_PRODUCTO_CHILLSAGE.md)
+5. [docs/context/ESPECIFICACION_FUNCIONAL_MODULOS_CHILLSAGE.md](./docs/context/ESPECIFICACION_FUNCIONAL_MODULOS_CHILLSAGE.md)
+6. [docs/engineering/REVIEW.md](./docs/engineering/REVIEW.md)
 
 ## Requisitos
 
@@ -127,7 +130,7 @@ Orden recomendado:
 - `DB_PASSWORD`: contrasena de base de datos
 - `DB_HOSTNAME`: host de MySQL. Default `127.0.0.1`
 - `DB_PORT`: puerto de MySQL. Default `3306`
-- `DB_SYNC`: si vale `true`, `npm run db:ensure-schema` ejecuta `db.sync({ force: false })` antes del ensure operativo
+- `DB_SYNC`: si vale `true`, `pnpm run db:ensure-schema` ejecuta `db.sync({ force: false })` antes del ensure operativo
 - `JWT_SECRET`: secreto para firmar tokens
 - `JWT_EXPIRES_IN`: duracion del access token. Default `8h`
 - `CORS_ORIGINS`: lista separada por comas con los origins permitidos para navegador
@@ -140,7 +143,7 @@ Orden recomendado:
 
 Referencia:
 
-- [`.env.example`](/C:/Users/yulia/Documents/projects/chillsage/chillsage-backend/.env.example)
+- [`.env.example`](./.env.example)
 
 ## Instalacion
 
@@ -163,7 +166,22 @@ Comportamiento actual:
 - aplica rate limiting a `POST /api/users/login`
 - monta la API bajo `/api`
 
-`npm run start` ya no modifica esquema ni crea datos base.
+`pnpm start` ya no modifica esquema ni crea datos base.
+
+## Compatibilidad Con Frontend
+
+Si el frontend consume este backend desde navegador, debe alinearse con estas reglas actuales:
+
+- el origin del frontend debe estar incluido en `CORS_ORIGINS`
+- login puede responder `429` cuando excede `LOGIN_RATE_LIMIT_MAX` dentro de `LOGIN_RATE_LIMIT_WINDOW_MS`
+- el frontend no debe depender de mensajes internos en errores `500`; ahora recibe mensajes genericos
+- la autenticacion sigue siendo por `Authorization: Bearer <access_token>`; no hay cookie de sesion ni refresh token
+
+Cambio esperado en frontend:
+
+- agregar manejo explicito de `429` en login y bloquear reintentos agresivos
+- mostrar mensaje de infraestructura o reintento para `500` sin intentar parsear detalle tecnico
+- verificar que `VITE_API_URL` o equivalente apunte al backend y que su origin este permitido por `CORS_ORIGINS`
 
 ## Esquema Oficial
 
@@ -183,7 +201,7 @@ Tablas canonicas:
 
 Referencia:
 
-- [docs/engineering/CANONICAL_SCHEMA.md](/C:/Users/yulia/Documents/projects/chillsage/chillsage-backend/docs/engineering/CANONICAL_SCHEMA.md)
+- [docs/engineering/CANONICAL_SCHEMA.md](./docs/engineering/CANONICAL_SCHEMA.md)
 
 ## Bootstrap Manual
 
@@ -233,7 +251,7 @@ Todos los endpoints bajo `/api` salvo login requieren `Authorization: Bearer <to
 
 El contrato operativo vigente esta documentado en:
 
-- [docs/contracts/FRONTEND_API_SERVICES.md](/C:/Users/yulia/Documents/projects/chillsage/chillsage-backend/docs/contracts/FRONTEND_API_SERVICES.md)
+- [docs/contracts/FRONTEND_API_SERVICES.md](./docs/contracts/FRONTEND_API_SERVICES.md)
 
 ## Testing
 
@@ -249,18 +267,18 @@ Suites relevantes:
 Ejecucion:
 
 ```bash
-npm test
+pnpm test
 ```
 
 ## Regla De Sincronizacion
 
 Si cambias endpoints, payloads, permisos o campos del backend, actualiza en el mismo cambio:
 
-1. [docs/contracts/FRONTEND_API_SERVICES.md](/C:/Users/yulia/Documents/projects/chillsage/chillsage-backend/docs/contracts/FRONTEND_API_SERVICES.md)
+1. [docs/contracts/FRONTEND_API_SERVICES.md](./docs/contracts/FRONTEND_API_SERVICES.md)
 2. el consumidor en `../chillsage-frontend`
 
 ## Otros Documentos
 
-- [Revision tecnica](/C:/Users/yulia/Documents/projects/chillsage/chillsage-backend/docs/engineering/REVIEW.md)
-- [Plan de hardening](/C:/Users/yulia/Documents/projects/chillsage/chillsage-backend/docs/engineering/HARDENING_PLAN.md)
-- [Reglas de Git](/C:/Users/yulia/Documents/projects/chillsage/chillsage-backend/docs/process/GIT_RULES.md)
+- [Revision tecnica](./docs/engineering/REVIEW.md)
+- [Plan de hardening](./docs/engineering/HARDENING_PLAN.md)
+- [Reglas de Git](./docs/process/GIT_RULES.md)

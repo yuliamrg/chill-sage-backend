@@ -61,9 +61,23 @@ Si hay conflicto entre documentos, para desarrollar sobre este repo manda el con
 
 ## Nota Operativa
 
-El backend ya no ejecuta bootstrap de esquema ni de autenticacion durante `npm run start`.
+El backend ya no ejecuta bootstrap de esquema ni de autenticacion durante `pnpm start`.
 
 Para preparar entorno de desarrollo:
 
-- usar `npm run db:ensure-schema` para esquema operativo
-- usar `npm run db:bootstrap-auth` para roles y usuarios de prueba
+- usar `pnpm run db:ensure-schema` para esquema operativo
+- usar `pnpm run db:bootstrap-auth` para roles y usuarios de prueba
+
+## Compatibilidad De Frontend
+
+Si el frontend consume este backend desde navegador, debe revisar siempre:
+
+1. [contracts/FRONTEND_API_SERVICES.md](./contracts/FRONTEND_API_SERVICES.md)
+2. [engineering/HARDENING_PLAN.md](./engineering/HARDENING_PLAN.md)
+
+Cambios de compatibilidad vigentes hoy:
+
+- el origin del frontend debe estar incluido en `CORS_ORIGINS`
+- login puede responder `429` por rate limiting
+- los errores `500` ya no exponen detalle interno; frontend debe tratar `msg` como texto final para usuario o fallback tecnico generico
+- la autenticacion sigue siendo solo `Bearer token`
